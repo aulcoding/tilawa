@@ -1,0 +1,11 @@
+# Local AI / editor tooling
+.agents/
+.codex/
+.impeccable/
+skills-lock.json
+
+# OS / editor junk
+.DS_Store
+*.swp
+*~
+node_modules/
