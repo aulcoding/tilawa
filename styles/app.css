@@ -1,0 +1,296 @@
+/* Tilawa styles (Tailwind v4).
+ *
+ * This is the source file. The page loads the compiled styles/build.css, made by
+ *   npm run build:css        (or automatically while `node dev.js` runs)
+ *
+ * Layout, spacing, type and colour are Tailwind utilities in the markup
+ * (index.html and the card template in js/schedule.js). This file holds:
+ *   1. design tokens (colours for light/dark, fonts, fluid type, breakpoints)
+ *   2. a few base rules
+ *   3. components: repeated buttons, and the stateful/animated bits
+ *      (moon fill, theme icons, card states...) that read better as CSS.
+ */
+@import "tailwindcss";
+
+@source "../index.html";
+@source "../js";
+
+/* ── 1. Tokens ─────────────────────────────────────────────────────────── */
+
+/* Colours change with the theme, so they're CSS variables first... */
+@layer base {
+  :root {
+    color-scheme: light;
+    --bg: #F3F4F6; --fg: #0B0C0E; --muted: #5B6169;
+    --line: rgba(11,12,14,.12); --line-strong: rgba(11,12,14,.34);
+    --surface: rgba(11,12,14,.025); --surface-done: rgba(11,12,14,.07);
+    --moon-lit: #0B0C0E; --moon-pending: #BAC0C7; --moon-dark: #E2E5E9;
+    --glow: rgba(120,130,150,.26);
+    --btn-bg: #0B0C0E; --btn-fg: #F3F4F6;
+    --nav-bg: rgba(243,244,246,.74);
+    --qr-bg: #FFFFFF;               /* QR codes need a light background in both themes */
+    --grain: .035;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      color-scheme: dark;
+      --bg: #000000; --fg: #ECEEF1; --muted: #8C929A;
+      --line: rgba(236,238,241,.11); --line-strong: rgba(236,238,241,.34);
+      --surface: rgba(236,238,241,.02); --surface-done: rgba(236,238,241,.07);
+      --moon-lit: #F3F5F7; --moon-pending: #34383E; --moon-dark: #0E1013;
+      --glow: rgba(205,218,240,.30);
+      --btn-bg: #ECEEF1; --btn-fg: #000000;
+      --nav-bg: rgba(0,0,0,.66);
+      --grain: .05;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --bg: #000000; --fg: #ECEEF1; --muted: #8C929A;
+    --line: rgba(236,238,241,.11); --line-strong: rgba(236,238,241,.34);
+    --surface: rgba(236,238,241,.02); --surface-done: rgba(236,238,241,.07);
+    --moon-lit: #F3F5F7; --moon-pending: #34383E; --moon-dark: #0E1013;
+    --glow: rgba(205,218,240,.30);
+    --btn-bg: #ECEEF1; --btn-fg: #000000;
+    --nav-bg: rgba(0,0,0,.66);
+    --grain: .05;
+  }
+}
+
+/* ...then exposed to Tailwind: bg-bg, text-fg, text-muted, border-line, fill-moon-lit, ... */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-surface: var(--surface);
+  --color-surface-done: var(--surface-done);
+  --color-moon-lit: var(--moon-lit);
+  --color-moon-pending: var(--moon-pending);
+  --color-moon-dark: var(--moon-dark);
+  --color-glow: var(--glow);
+  --color-btn: var(--btn-bg);
+  --color-btn-fg: var(--btn-fg);
+  --color-nav: var(--nav-bg);
+  --color-qr: var(--qr-bg);
+}
+
+@theme {
+  /* The design is desktop-first, so the markup uses max-* variants:
+     max-md:hidden = hidden at 640px and below. */
+  --breakpoint-*: initial;
+  --breakpoint-xs: 431px;   /* max-xs:  ≤ 430px  very small phones (brand word hides) */
+  --breakpoint-sm: 521px;   /* max-sm:  ≤ 520px  schedule cards go 2 per row */
+  --breakpoint-md: 641px;   /* max-md:  ≤ 640px  phone nav, stacked progress */
+  --breakpoint-lg: 761px;   /* max-lg:  ≤ 760px  excuses + support stack */
+  --breakpoint-xl: 861px;   /* max-xl:  ≤ 860px  two-column text blocks stack */
+  --breakpoint-2xl: 901px;  /* max-2xl: ≤ 900px  hero stacks, moon on top */
+
+  --font-sans: "Geist", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-serif: "Newsreader", Georgia, "Times New Roman", serif;
+
+  /* Fluid type: text-hero, text-h2, ... */
+  --text-hero: clamp(40px, 5vw, 84px);     --text-hero--line-height: .98;
+  --text-final: clamp(44px, 7.4vw, 112px); --text-final--line-height: .98;
+  --text-stats: clamp(38px, 6.2vw, 92px);  --text-stats--line-height: 1.02;
+  --text-h2: clamp(34px, 4.6vw, 64px);     --text-h2--line-height: 1.03;
+  --text-ayah: clamp(30px, 4.4vw, 60px);   --text-ayah--line-height: 1.14;
+  --text-count: clamp(40px, 4vw, 56px);    --text-count--line-height: 1;
+  --text-h3: clamp(21px, 2vw, 26px);       --text-h3--line-height: 1.25;
+  --text-answer: clamp(21px, 2.1vw, 28px); --text-answer--line-height: 1.3;
+  --text-quote: clamp(20px, 2vw, 26px);    --text-quote--line-height: 1.25;
+  --text-big: clamp(19px, 1.7vw, 24px);    --text-big--line-height: 1.5;
+  --text-sub: clamp(17px, 1.4vw, 19px);    --text-sub--line-height: 1.6;
+  --text-lede: clamp(17px, 1.3vw, 19px);   --text-lede--line-height: 1.6;
+
+  --tracking-display: -.045em;   /* hero + closing headline */
+  --tracking-stats: -.04em;      /* big numbers */
+  --tracking-title: -.035em;     /* h2 */
+  --tracking-snug: -.02em;
+  --tracking-label: .14em;       /* small caps labels */
+
+  --radius-card: 18px;
+
+  --ease-spring: cubic-bezier(.34, 1.56, .64, 1);   /* small overshoot */
+  --ease-soft: cubic-bezier(.33, 1, .68, 1);        /* ease-out, like the hero moon */
+}
+
+/* Page width + side gutter, used by every section */
+@utility wrap {
+  max-width: 1240px;
+  margin-inline: auto;
+  padding-inline: clamp(20px, 5vw, 64px);
+}
+/* Vertical rhythm for the regular content sections */
+@utility section-y {
+  padding-block: clamp(80px, 11vw, 152px);
+}
+
+/* ── 2. Base ───────────────────────────────────────────────────────────── */
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: env(safe-area-inset-top, 0px);
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--font-sans);
+    font-size: 17px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow-x: hidden;
+  }
+  /* Film grain over everything */
+  body::after {
+    content: "";
+    position: fixed; inset: 0; z-index: 100; pointer-events: none;
+    opacity: var(--grain);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  :focus-visible { outline: 2px solid var(--fg); outline-offset: 3px; border-radius: 8px; }
+  section { scroll-margin-top: 72px; }
+  button { cursor: pointer; }
+  q { quotes: "“" "”" "‘" "’"; }
+  [hidden] { display: none !important; }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+  }
+}
+
+/* ── 3. Components ─────────────────────────────────────────────────────── */
+
+@layer components {
+  /* Buttons */
+  .btn {
+    @apply inline-flex h-12 items-center justify-center rounded-full border border-transparent px-[22px]
+           text-[15px] leading-none font-medium tracking-[-.005em] whitespace-nowrap
+           transition-[opacity,border-color] duration-200;
+  }
+  .btn-primary { @apply bg-btn text-btn-fg hover:opacity-86; }
+  .btn-ghost   { @apply bg-transparent text-fg border-line-strong hover:border-fg; }
+  .btn-sm      { @apply h-[38px] px-4 text-[14px]; }
+
+  /* "I'll start tomorrow" → "Sure you will." on hover / tap */
+  .btn-roast { display: inline-grid; place-items: center; min-width: 12.5em; }
+  .btn-roast .lbl { grid-area: 1 / 1; transition: opacity .25s ease, transform .25s ease; }
+  .btn-roast .lbl-b { opacity: 0; transform: translateY(6px); }
+  .btn-roast.roasted .lbl-a { opacity: 0; transform: translateY(-6px); }
+  .btn-roast.roasted .lbl-b { opacity: 1; transform: none; }
+  @media (hover: hover) {
+    .btn-roast:hover .lbl-a { opacity: 0; transform: translateY(-6px); }
+    .btn-roast:hover .lbl-b { opacity: 1; transform: none; }
+  }
+
+  /* EN/ID switch: the active label lights up like a waxing moon. A curved edge sweeps
+     in from the side the light comes from while the other label wanes toward it. */
+  .lang span { position: relative; display: grid; place-items: center; width: 36px; border-radius: 999px; overflow: hidden; }
+  .lang span::before {
+    content: ""; position: absolute; inset: 0; z-index: -1;
+    background: var(--btn-bg); box-shadow: 0 0 10px var(--glow);
+  }
+  .lang .l-en::before { clip-path: ellipse(0% 75% at 100% 50%); }   /* EN wanes toward ID */
+  .lang .l-id::before { clip-path: ellipse(0% 75% at 0% 50%); }     /* ID waxes from EN's side */
+  .lang[data-lang="en"] .l-en::before,
+  .lang[data-lang="id"] .l-id::before { clip-path: ellipse(80% 115% at 50% 50%); }
+  .lang[data-lang="en"] .l-en,
+  .lang[data-lang="id"] .l-id { color: var(--btn-fg); }
+  .lang.ready span::before { transition: clip-path .55s cubic-bezier(.45,.05,.25,1); }
+  .lang.ready span { transition: color .3s ease; }
+  /* the one lighting up starts a beat later, so the light visibly travels across */
+  .lang.ready[data-lang="id"] .l-id::before,
+  .lang.ready[data-lang="en"] .l-en::before { transition-delay: .14s; }
+  .lang.ready[data-lang="id"] .l-id,
+  .lang.ready[data-lang="en"] .l-en { transition-delay: .3s; }
+  .lang:active span { scale: .94; transition: scale .1s; }
+
+  /* Theme switch: a moon in light mode (go dark), a sun in dark mode (go light) */
+  .theme svg { transition: opacity .35s ease, transform .5s var(--ease-spring); }
+  .theme .ic-sun  { opacity: 0; transform: rotate(-90deg) scale(.5); }
+  .theme .ic-moon { opacity: 1; transform: none; }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) .theme .ic-sun  { opacity: 1; transform: none; }
+    :root:not([data-theme="light"]) .theme .ic-moon { opacity: 0; transform: rotate(90deg) scale(.5); }
+  }
+  :root[data-theme="dark"] .theme .ic-sun  { opacity: 1; transform: none; }
+  :root[data-theme="dark"] .theme .ic-moon { opacity: 0; transform: rotate(90deg) scale(.5); }
+  /* brief colour cross-fade while the theme flips */
+  html.theme-anim, html.theme-anim *, html.theme-anim *::before, html.theme-anim *::after {
+    transition: background-color .4s ease, color .4s ease, border-color .4s ease, fill .4s ease, stroke .4s ease !important;
+  }
+
+  /* Hero moon */
+  .hero-moon .lit.fading { opacity: 0; }
+  .moon-glide:has(.moon-tap:active) svg { scale: .97; transition: scale .1s; }
+  /* "Breathe in / out": placed around the moon by js/hero.js */
+  .breath span { display: none; }
+  .breath[data-phase="in"] span:first-child,
+  .breath[data-phase="out"] span:last-child { display: inline; }
+
+  /* Schedule card. The whole card is one big "+1 page" button (.day-hit);
+     the text sits above it but lets taps through, except the − / + buttons.
+     Card states (is-done, locked, is-next...) are utility variants in js/schedule.js,
+     because in Tailwind v4 utilities always beat this components layer. */
+  .day > :not(.day-hit):not(.day-warn) { position: relative; z-index: 1; pointer-events: none; }
+  .day .day-ctrl { pointer-events: auto; }
+  .day.flash { animation: flash 1.4s ease; }
+  .day.has-status .day-status { animation: status-in .35s ease; }
+
+  /* Card moon: the bright layer sits behind a clip that rises bottom → top when the day is done */
+  .day-moon { transition: filter .6s ease .5s; }
+  .day-moon .disk { fill: var(--moon-dark); stroke: var(--line); transition: stroke .4s; }
+  .day-moon .lit-base { fill: var(--moon-pending); }
+  .day-moon .lit-on { fill: var(--moon-lit); }
+  .day-moon .rise { transform-box: fill-box; transform-origin: 50% 100%; transform: scaleY(0); transition: transform 1s var(--ease-soft); }
+  .day.is-done .day-moon .rise { transform: scaleY(1); }
+  .day.is-done .day-moon { filter: drop-shadow(0 0 6px var(--glow)); }
+  .day.is-done .day-moon .disk { stroke: var(--line-strong); }
+  .day.just-done .day-moon { animation: moon-pop 1.2s var(--ease-spring); }
+
+  /* "Don't skip this surah" bubble */
+  .day-warn {
+    @apply pointer-events-none absolute top-0 left-1/2 z-3 rounded-full bg-fg px-3 py-1.5
+           text-[12.5px] leading-[1.2] whitespace-nowrap text-bg shadow-[0_6px_20px_rgba(0,0,0,.25)];
+    transform: translate(-50%, -55%);
+    animation: warn-pop .35s var(--ease-spring) both;
+  }
+  .day-warn.leaving { animation: warn-out .25s ease forwards; }
+
+  /* Saweria QR (the library injects a canvas + img) */
+  .qr-card #saweria-qr,
+  .qr-card #saweria-qr canvas,
+  .qr-card #saweria-qr img { display: block; width: 100% !important; height: auto !important; image-rendering: pixelated; }
+
+  /* Load-in moment, then the hero moon breathes and glides */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-copy > * { animation: rise 1s cubic-bezier(.2,.7,.2,1) both; }
+    .hero-copy > :nth-child(2) { animation-delay: .08s; }
+    .hero-copy > :nth-child(3) { animation-delay: .16s; }
+    .hero-copy > :nth-child(4) { animation-delay: .24s; }
+    .hero-moon { animation: moonin 1.8s ease both; }
+    .hero-moon svg { animation: breathe 8s ease-in-out infinite; }
+    .hero-moon .glow { animation: glow 8s ease-in-out infinite; }
+    .moon-glide { animation: glide 2s ease-in-out infinite alternate; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .lang.ready span, .lang.ready span::before, .theme svg, .day-moon, .day-moon .rise { transition: none; }
+    .day.just-done .day-moon, .day.has-status .day-status, .day-warn, .day-warn.leaving { animation: none; }
+    .breath { display: none; }
+  }
+}
+
+@keyframes rise    { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+@keyframes moonin  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes breathe { 0%, 100% { transform: scale(.97); } 50% { transform: scale(1.03); } }
+@keyframes glide   { from { transform: translateX(-10px); } to { transform: translateX(10px); } }
+@keyframes glow    { 0%, 100% { opacity: .45; } 50% { opacity: 1; } }
+@keyframes flash   { 0%, 100% { box-shadow: 0 0 0 0 transparent; } 30% { box-shadow: 0 0 0 3px var(--fg); } }
+@keyframes moon-pop  { 0%, 100% { transform: scale(1); } 55% { transform: scale(1.14); } }
+@keyframes status-in { from { opacity: .2; transform: translateY(4px); } to { opacity: 1; transform: none; } }
+@keyframes warn-pop  { from { opacity: 0; transform: translate(-50%, -20%) scale(.85); } to { opacity: 1; transform: translate(-50%, -55%) scale(1); } }
+@keyframes warn-out  { to { opacity: 0; transform: translate(-50%, -80%); } }

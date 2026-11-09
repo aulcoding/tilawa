@@ -1,11 +1,14 @@
-// Local dev server with auto-reload. No install needed.
+// Local dev server with auto-reload.
 // Run:  node dev.js        (or: node dev.js 4000 for another port)
 // Stop: Ctrl+C
 // Every time you save a file in this folder, the browser refreshes by itself.
+// It also runs Tailwind in watch mode (after `npm install`), so styles/build.css
+// is rebuilt whenever you change a class in index.html, js/ or styles/app.css.
 
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const { spawn } = require("child_process");
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2]) || 5500;
@@ -84,6 +87,9 @@ fs.watch(ROOT, { recursive: true }, (event, name) => {
     !base ||
     base.startsWith(".") ||
     name.includes("node_modules") ||
+    name.startsWith("target") ||          // cargo build output
+    name.startsWith("crates") ||          // Rust source: needs `npm run build:wasm` first
+    name === path.join("styles", "app.css") || // wait for Tailwind to write build.css instead
     /(~|\.swp|\.swx|\.tmp|^4913)$/.test(base)
   )
     return;
@@ -93,6 +99,19 @@ fs.watch(ROOT, { recursive: true }, (event, name) => {
     for (const c of clients) c.write("data: reload\n\n");
   }, 120);
 });
+
+// Tailwind watch: rebuilds styles/build.css from styles/app.css + the classes used in the markup
+const tailwindBin = path.join(ROOT, "node_modules", ".bin", "tailwindcss");
+if (fs.existsSync(tailwindBin)) {
+  const tw = spawn(tailwindBin, ["-i", "styles/app.css", "-o", "styles/build.css", "--watch", "--minify"], {
+    cwd: ROOT,
+    stdio: ["pipe", "inherit", "inherit"],   // keep stdin open: Tailwind stops watching when it closes
+  });
+  process.on("exit", () => tw.kill());
+  process.on("SIGINT", () => process.exit());
+} else {
+  console.log("Tailwind not installed: run `npm install` to rebuild styles while you edit.");
+}
 
 server.listen(PORT, () => {
   console.log("Tilawa dev server: http://localhost:" + PORT);

@@ -14,443 +14,50 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Newsreader:ital,opsz,wght@1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
-<style>
-  :root{
-    color-scheme: light;
-    --bg:#F3F4F6; --fg:#0B0C0E; --muted:#5B6169;
-    --line:rgba(11,12,14,.12); --line-strong:rgba(11,12,14,.34);
-    --surface:rgba(11,12,14,.025); --surface-done:rgba(11,12,14,.07);
-    --moon-lit:#0B0C0E; --moon-pending:#BAC0C7; --moon-dark:#E2E5E9;
-    --glow:rgba(120,130,150,.26);
-    --btn-bg:#0B0C0E; --btn-fg:#F3F4F6;
-    --nav-bg:rgba(243,244,246,.74);
-    --grain:.035;
-    --qr-bg:#FFFFFF;   /* QR codes need a light background in both themes */
-    --pad:clamp(20px,5vw,64px);
-    --sans:"Geist",ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
-    --serif:"Newsreader",Georgia,"Times New Roman",serif;
-  }
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]){
-      color-scheme: dark;
-      --bg:#000000; --fg:#ECEEF1; --muted:#8C929A;
-      --line:rgba(236,238,241,.11); --line-strong:rgba(236,238,241,.34);
-      --surface:rgba(236,238,241,.02); --surface-done:rgba(236,238,241,.07);
-      --moon-lit:#F3F5F7; --moon-pending:#34383E; --moon-dark:#0E1013;
-      --glow:rgba(205,218,240,.30);
-      --btn-bg:#ECEEF1; --btn-fg:#000000;
-      --nav-bg:rgba(0,0,0,.66);
-      --grain:.05;
-    }
-  }
-  :root[data-theme="dark"]{
-      color-scheme: dark;
-      --bg:#000000; --fg:#ECEEF1; --muted:#8C929A;
-      --line:rgba(236,238,241,.11); --line-strong:rgba(236,238,241,.34);
-      --surface:rgba(236,238,241,.02); --surface-done:rgba(236,238,241,.07);
-      --moon-lit:#F3F5F7; --moon-pending:#34383E; --moon-dark:#0E1013;
-      --glow:rgba(205,218,240,.30);
-      --btn-bg:#ECEEF1; --btn-fg:#000000;
-      --nav-bg:rgba(0,0,0,.66);
-      --grain:.05;
-  }
-
-  *,*::before,*::after{box-sizing:border-box}
-  [hidden]{display:none!important}
-  html{scroll-behavior:smooth;-webkit-text-size-adjust:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
-  body{
-    margin:0;background:var(--bg);color:var(--fg);
-    font-family:var(--sans);font-size:17px;line-height:1.6;
-    -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;overflow-x:hidden;
-  }
-  body::after{
-    content:"";position:fixed;inset:0;pointer-events:none;z-index:100;opacity:var(--grain);
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
-  }
-  a{color:inherit}
-  :focus-visible{outline:2px solid var(--fg);outline-offset:3px;border-radius:8px}
-  .wrap{max-width:1240px;margin:0 auto;padding:0 var(--pad)}
-  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
-  .skip{position:absolute;left:12px;top:-60px;z-index:50;background:var(--btn-bg);color:var(--btn-fg);padding:10px 14px;border-radius:10px;text-decoration:none}
-  .skip:focus{top:12px}
-
-  /* Nav */
-  .nav{
-    position:sticky;top:0;z-index:20;padding-top:env(safe-area-inset-top,0px);
-    background:var(--nav-bg);backdrop-filter:saturate(140%) blur(14px);-webkit-backdrop-filter:saturate(140%) blur(14px);
-    border-bottom:1px solid var(--line);
-  }
-  .nav .wrap{display:flex;align-items:center;justify-content:space-between;height:64px;gap:24px}
-  .brand{display:inline-flex;align-items:center;gap:10px;font-weight:500;font-size:18px;letter-spacing:-.02em;text-decoration:none}
-  .brand svg{width:20px;height:20px}
-  .brand .disk{fill:var(--moon-dark);stroke:var(--line-strong)}
-  .brand .lit{fill:var(--moon-lit)}
-  .nav-links{display:flex;align-items:center;gap:28px;font-size:15px}
-  .nav-links a:not(.btn){text-decoration:none;color:var(--muted);transition:color .2s}
-  .nav-links a:not(.btn):hover{color:var(--fg)}
-  @media (max-width:640px){.nav-links a:not(.btn){display:none} .nav-links{gap:10px} .nav .wrap{gap:12px}}
-  @media (max-width:430px){.brand-word{display:none}}
-
-  /* Theme switch: shows a moon in light mode (go dark) and a sun in dark mode (go light) */
-  .theme{
-    position:relative;width:38px;height:38px;flex:none;display:grid;place-items:center;padding:0;border-radius:50%;
-    border:1px solid var(--line-strong);background:transparent;color:var(--fg);cursor:pointer;transition:border-color .2s;
-  }
-  .theme:hover{border-color:var(--fg)}
-  .theme svg{grid-area:1/1;width:18px;height:18px;transition:opacity .35s ease,transform .5s cubic-bezier(.34,1.56,.64,1)}
-  .theme .ic-moon{fill:currentColor}
-  .theme .ic-sun{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
-  .theme .ic-sun circle{fill:currentColor;stroke:none}
-  :root .theme .ic-sun{opacity:0;transform:rotate(-90deg) scale(.5)}
-  :root .theme .ic-moon{opacity:1;transform:none}
-  @media (prefers-color-scheme: dark){
-    :root:not([data-theme="light"]) .theme .ic-sun{opacity:1;transform:none}
-    :root:not([data-theme="light"]) .theme .ic-moon{opacity:0;transform:rotate(90deg) scale(.5)}
-  }
-  :root[data-theme="dark"] .theme .ic-sun{opacity:1;transform:none}
-  :root[data-theme="dark"] .theme .ic-moon{opacity:0;transform:rotate(90deg) scale(.5)}
-  /* brief colour cross-fade while the theme flips */
-  html.theme-anim,html.theme-anim *,html.theme-anim *::before,html.theme-anim *::after{
-    transition:background-color .4s ease,color .4s ease,border-color .4s ease,fill .4s ease,stroke .4s ease!important;
-  }
-  @media (prefers-reduced-motion: reduce){.theme svg{transition:none}}
-
-  /* Language switch */
-  .lang{
-    display:inline-flex;align-items:stretch;height:38px;padding:3px;gap:2px;border-radius:999px;
-    border:1px solid var(--line-strong);background:transparent;color:var(--muted);
-    font:500 13px/1 var(--sans);letter-spacing:.04em;cursor:pointer;transition:border-color .2s;
-    position:relative;isolation:isolate;
-  }
-  /* Moon fill: the active label lights up like a waxing moon. A curved edge (the
-     terminator) sweeps across from the side the light is coming from, while the
-     other label wanes toward that same side, so the light flows EN <-> ID. */
-  .lang span{position:relative;display:grid;place-items:center;width:36px;border-radius:999px;overflow:hidden}
-  .lang span::before{
-    content:"";position:absolute;inset:0;z-index:-1;background:var(--btn-bg);
-    box-shadow:0 0 10px var(--glow);
-  }
-  .lang .l-en::before{clip-path:ellipse(0% 75% at 100% 50%)}   /* EN wanes toward ID */
-  .lang .l-id::before{clip-path:ellipse(0% 75% at 0% 50%)}     /* ID waxes from EN's side */
-  .lang[data-lang="en"] .l-en::before,.lang[data-lang="id"] .l-id::before{clip-path:ellipse(80% 115% at 50% 50%)}
-  .lang[data-lang="en"] .l-en,.lang[data-lang="id"] .l-id{color:var(--btn-fg)}
-  .lang.ready span::before{transition:clip-path .55s cubic-bezier(.45,.05,.25,1)}
-  .lang.ready span{transition:color .3s ease}
-  /* the one lighting up starts a beat later, so the light visibly travels across */
-  .lang.ready[data-lang="id"] .l-id::before,.lang.ready[data-lang="en"] .l-en::before{transition-delay:.14s}
-  .lang.ready[data-lang="id"] .l-id,.lang.ready[data-lang="en"] .l-en{transition-delay:.3s}
-  .lang:active span{scale:.94;transition:scale .1s}
-  @media (prefers-reduced-motion: reduce){.lang.ready span,.lang.ready span::before{transition:none}}
-
-  /* Buttons */
-  .btn{
-    display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 22px;border-radius:999px;
-    font:500 15px/1 var(--sans);letter-spacing:-.005em;text-decoration:none;cursor:pointer;white-space:nowrap;
-    border:1px solid transparent;transition:opacity .2s,border-color .2s;
-  }
-  .btn-primary{background:var(--btn-bg);color:var(--btn-fg)}
-  .btn-primary:hover{opacity:.86}
-  .btn-ghost{background:transparent;color:var(--fg);border-color:var(--line-strong)}
-  .btn-ghost:hover{border-color:var(--fg)}
-  .btn-sm{height:38px;padding:0 16px;font-size:14px}
-  .btn-roast{display:inline-grid;place-items:center;min-width:12.5em}
-  .btn-roast .lbl{grid-area:1/1;transition:opacity .25s ease,transform .25s ease}
-  .btn-roast .lbl-b{opacity:0;transform:translateY(6px)}
-  .btn-roast.roasted .lbl-a{opacity:0;transform:translateY(-6px)}
-  .btn-roast.roasted .lbl-b{opacity:1;transform:none}
-  @media (hover:hover){
-    .btn-roast:hover .lbl-a{opacity:0;transform:translateY(-6px)}
-    .btn-roast:hover .lbl-b{opacity:1;transform:none}
-  }
-
-  /* Hero */
-  /* Hero: copy left, moon right, both centred on the same axis and inside the page edges */
-  .hero{position:relative;min-height:calc(100svh - 64px);display:flex;align-items:center;overflow:hidden;padding:clamp(56px,8vh,96px) 0 clamp(72px,10vh,112px)}
-  .hero-inner{position:relative;z-index:1;width:100%;display:grid;grid-template-columns:minmax(0,1fr) minmax(220px,420px);gap:clamp(40px,6vw,96px);align-items:center}
-  .hero-copy{min-width:0}
-  .hero-kicker{color:var(--muted);font-size:16px;margin:0 0 22px}
-  h1{font-weight:300;font-size:clamp(40px,5vw,84px);line-height:.98;letter-spacing:-.045em;margin:0;text-wrap:balance}
-  h1 span{display:block}
-  .hero-sub{max-width:52ch;color:var(--muted);font-size:clamp(17px,1.4vw,19px);margin:32px 0 36px}
-  .hero-ctas{display:flex;flex-wrap:wrap;gap:12px}
-  .hero-moon{position:relative;width:100%;max-width:100%;aspect-ratio:1;justify-self:end;pointer-events:none}
-  .hero-moon .glow{position:absolute;inset:-16%;border-radius:50%;background:radial-gradient(closest-side,var(--glow),transparent 72%)}
-  .hero-moon svg{position:relative;display:block;width:100%;height:100%;transform-origin:50% 50%}
-  .hero-moon .disk{fill:var(--moon-dark)}
-  .hero-moon .lit{fill:var(--moon-lit);transition:opacity .4s ease}
-  .hero-moon .lit.fading{opacity:0}
-  .moon-glide{position:absolute;inset:0}
-  .moon-tap{
-    position:absolute;inset:5%;border-radius:50%;border:0;padding:0;background:transparent;
-    cursor:pointer;pointer-events:auto;-webkit-tap-highlight-color:transparent;
-  }
-  .moon-tap:focus-visible{outline:2px solid var(--fg);outline-offset:4px;border-radius:50%}
-  .moon-glide:has(.moon-tap:active) svg{scale:.97;transition:scale .1s}
-  /* "Breathe in / out" sits centred under the moon, like a caption */
-  /* "Breathe in / out" pops up at a random spot around the moon (placed by script) */
-  .breath{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-size:13px;letter-spacing:.14em;text-transform:uppercase;white-space:nowrap;color:var(--muted);opacity:0;transition:opacity .9s ease;pointer-events:none}
-  .breath.show{opacity:1}
-  .breath span{display:none}
-  .breath[data-phase="in"] span:first-child,.breath[data-phase="out"] span:last-child{display:inline}
-  @media (max-width:900px){
-    .hero{display:block;min-height:0;padding:32px 0 72px}
-    .hero-inner{grid-template-columns:1fr;gap:72px}
-    .hero-moon{order:-1;width:min(58vw,300px);justify-self:center}
-  }
-
-  /* Stats */
-  .stats{border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
-  .stats p{margin:0;padding:clamp(48px,8vw,96px) 0;font-weight:300;font-size:clamp(38px,6.2vw,92px);line-height:1.02;letter-spacing:-.04em}
-  .stats span{display:inline-block}
-  @media (max-width:640px){.stats span{display:block}}
-
-  /* Sections */
-  section{scroll-margin-top:72px}
-  .section{padding:clamp(80px,11vw,152px) 0}
-  .section + .section{border-top:1px solid var(--line)}
-
-  /* Accordion between hero and schedule: a small chevron on a hairline */
-  .more-toggle-wrap{position:relative;height:0;border-top:1px solid var(--line);display:flex;justify-content:center;z-index:2}
-  .more-toggle{
-    position:absolute;top:0;transform:translateY(-50%);
-    width:40px;height:40px;display:grid;place-items:center;padding:0;border-radius:50%;
-    border:1px solid var(--line-strong);background:var(--bg);color:var(--muted);cursor:pointer;
-    transition:color .2s,border-color .2s;
-  }
-  .more-toggle:hover{color:var(--fg);border-color:var(--fg)}
-  .more-toggle svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;transition:transform .35s ease}
-  .more-toggle[aria-expanded="true"] svg{transform:rotate(180deg)}
-  .more{display:grid;grid-template-rows:0fr;transition:grid-template-rows .5s ease}
-  .more.open{grid-template-rows:1fr}
-  .more-inner{min-height:0;overflow:hidden}
-  .more .stats{border-top:0}
-  .more.open + .section{border-top:1px solid var(--line)}
-  h2{font-weight:300;font-size:clamp(34px,4.6vw,64px);line-height:1.03;letter-spacing:-.035em;margin:0;max-width:16ch}
-  .lede{color:var(--muted);max-width:56ch;margin:24px 0 0;font-size:clamp(17px,1.3vw,19px)}
-  .split{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:clamp(24px,5vw,80px);align-items:start}
-  .big{margin:0;font-size:clamp(19px,1.7vw,24px);line-height:1.5;letter-spacing:-.01em;max-width:46ch}
-  @media (max-width:860px){.split{grid-template-columns:1fr}}
-
-  .ayah{margin:clamp(64px,9vw,120px) 0 0;padding-top:clamp(40px,6vw,64px);border-top:1px solid var(--line)}
-  .ayah blockquote{margin:0}
-  .ayah blockquote p{margin:0;font-family:var(--serif);font-style:italic;font-weight:300;font-size:clamp(30px,4.4vw,60px);line-height:1.14;letter-spacing:-.015em;max-width:22ch}
-  .ayah figcaption{margin-top:24px;color:var(--muted);font-size:15px;display:flex;flex-wrap:wrap;gap:6px 24px}
-  .ayah figcaption a{color:var(--fg);text-underline-offset:3px}
-
-  .rows{margin-top:clamp(40px,6vw,72px);border-top:1px solid var(--line)}
-  .row{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:10px clamp(24px,5vw,80px);padding:28px 0;border-bottom:1px solid var(--line)}
-  .row h3{margin:0;font-weight:400;font-size:clamp(21px,2vw,26px);letter-spacing:-.02em;line-height:1.25}
-  .row p{margin:0;color:var(--muted);max-width:56ch}
-  @media (max-width:860px){.row{grid-template-columns:1fr}}
-
-  /* Schedule */
-  .progress{margin-top:40px;padding:24px 0;border-top:1px solid var(--line);display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:12px 28px;align-items:center}
-  .progress-count{font-weight:300;font-size:clamp(40px,4vw,56px);letter-spacing:-.04em;line-height:1;font-variant-numeric:tabular-nums}
-  .progress-count small{font-size:.42em;color:var(--muted);letter-spacing:-.01em;margin-left:2px}
-  .progress-msg{margin:0 0 10px;font-size:17px;line-height:1.4;min-height:1.4em}
-  /* On narrow screens the line may wrap: keep room for two lines so the bar doesn't jump */
-  @media (max-width:640px){.progress-msg{min-height:2.8em;display:flex;align-items:flex-end}}
-  .bar{height:2px;background:var(--line);border-radius:2px;overflow:hidden}
-  .bar i{display:block;height:100%;width:0;background:var(--fg);transition:width .5s ease}
-  .reset{background:none;border:0;color:var(--muted);font:inherit;font-size:14px;cursor:pointer;text-decoration:underline;text-underline-offset:3px;padding:6px 0}
-  .reset:hover{color:var(--fg)}
-  .reset:disabled{opacity:.4;cursor:default;text-decoration:none}
-  .reset.armed{color:var(--fg)}
-  @media (max-width:640px){.progress{grid-template-columns:auto minmax(0,1fr)} .reset{grid-column:1/-1;justify-self:start}}
-
-  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(212px,1fr));gap:12px;margin-top:8px}
-  @media (max-width:520px){
-    .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
-    .day{padding:14px 12px 12px;min-width:0}
-    .day-prog-row{flex-wrap:wrap;row-gap:6px}
-    .day-step{width:30px;height:30px}
-    .day-meta{flex-direction:column;gap:2px}
-    .day-meta > span{white-space:normal}
-  }
-  .day{
-    position:relative;display:flex;flex-direction:column;gap:12px;min-height:204px;padding:18px 18px 14px;
-    border:1px solid var(--line);border-radius:18px;background:var(--surface);color:var(--fg);
-    text-align:left;-webkit-tap-highlight-color:transparent;
-    transition:border-color .2s,background-color .25s;
-  }
-  /* The whole card is one big "+1 page" button; text sits above it but lets taps through */
-  .day-hit{position:absolute;inset:0;z-index:0;border:0;padding:0;margin:0;border-radius:inherit;background:transparent;cursor:pointer}
-  .day-hit:focus-visible{outline:2px solid var(--fg);outline-offset:2px}
-  .day > :not(.day-hit):not(.day-warn){position:relative;z-index:1;pointer-events:none}
-  @media (hover:hover){.day:hover{border-color:var(--line-strong)}}
-  .day.is-done{background:var(--surface-done);border-color:var(--line-strong)}
-  .day-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
-  .day-num{font-size:14px;color:var(--muted);line-height:1.2}
-  .day-num b{display:block;font-weight:300;font-size:34px;letter-spacing:-.04em;color:var(--fg);line-height:1;margin-top:4px;font-variant-numeric:tabular-nums}
-  .day-moon{width:38px;height:38px;flex:none;transition:filter .6s ease .5s}
-  .day-moon .disk{fill:var(--moon-dark);stroke:var(--line);transition:stroke .4s}
-  .day-moon .lit-base{fill:var(--moon-pending)}
-  .day-moon .lit-on{fill:var(--moon-lit)}
-  /* Light rises from the bottom of the moon to the top when the day is done (eased like the hero moon) */
-  .day-moon .rise{transform-box:fill-box;transform-origin:50% 100%;transform:scaleY(0);transition:transform 1s cubic-bezier(.33,1,.68,1)}
-  .day.is-done .day-moon .rise{transform:scaleY(1)}
-  .day.is-done .day-moon{filter:drop-shadow(0 0 6px var(--glow))}
-  .day.is-done .day-moon .disk{stroke:var(--line-strong)}
-  .day.just-done .day-moon{animation:moon-pop 1.2s cubic-bezier(.34,1.56,.64,1)}
-  @keyframes moon-pop{0%,100%{transform:scale(1)}55%{transform:scale(1.14)}}
-  .day-tag{align-self:flex-start;font-size:12.5px;line-height:1.3;padding:5px 10px;border:1px solid var(--line-strong);border-radius:12px}
-  .nw{white-space:nowrap}
-  .day-surahs{margin-top:auto;font-size:17px;line-height:1.3;letter-spacing:-.01em}
-  .day-surahs > span{display:block}
-  /* Cheer line (while reading) / done line (when finished) */
-  /* Fixed two-line slot: text longer than two lines is cut with "…", so the card never changes height */
-  .day-status{
-    margin:0;height:2.7em;font-size:13px;line-height:1.35;color:var(--muted);
-    display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;overflow:hidden;
-  }
-  .day.is-done .day-status{color:var(--fg)}
-  .day.has-status .day-status{animation:status-in .35s ease}
-  @keyframes status-in{from{opacity:.2;transform:translateY(4px)}to{opacity:1;transform:none}}
-  /* Per-day page progress */
-  .day-prog{display:flex;flex-direction:column;gap:8px}
-  .day-bar{height:3px;border-radius:3px;background:var(--line);overflow:hidden}
-  .day-bar i{display:block;height:100%;width:var(--fill,0%);background:var(--fg);border-radius:inherit;transition:width .35s cubic-bezier(.33,1,.68,1)}
-  .day-prog-row{display:flex;align-items:center;justify-content:space-between;gap:8px}
-  .day-count{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
-  .day-count b{font-weight:500;color:var(--fg)}
-  .day-ctrl{display:inline-flex;gap:6px;pointer-events:auto}
-  .day > .day-prog{pointer-events:none}
-  .day-prog .day-ctrl{pointer-events:auto}
-  .day-step{
-    width:32px;height:32px;display:grid;place-items:center;padding:0;border-radius:50%;
-    border:1px solid var(--line-strong);background:var(--bg);color:var(--fg);
-    font:400 18px/1 var(--sans);cursor:pointer;transition:border-color .2s,opacity .2s,transform .1s;
-  }
-  .day-step:hover{border-color:var(--fg)}
-  .day-step:active{transform:scale(.9)}
-  .day-step[aria-disabled="true"]{opacity:.35}
-  .day-step[aria-disabled="true"]:hover{border-color:var(--line-strong)}
-  .day-meta{display:flex;justify-content:space-between;gap:8px;font-size:12.5px;color:var(--muted)}
-  .day-meta > span{white-space:nowrap}
-  @media (prefers-reduced-motion: reduce){
-    .day-moon .rise,.day-bar i,.day-moon{transition:none}
-    .day.just-done .day-moon,.day.has-status .day-status{animation:none}
-  }
-  .day.locked{opacity:.5}
-  /* Bubble on the day you're trying to skip past */
-  .day-warn{
-    position:absolute;z-index:3;top:0;left:50%;transform:translate(-50%,-55%);
-    padding:6px 12px;border-radius:999px;background:var(--fg);color:var(--bg);
-    font-size:12.5px;line-height:1.2;white-space:nowrap;pointer-events:none;
-    box-shadow:0 6px 20px rgba(0,0,0,.25);animation:warn-pop .35s cubic-bezier(.34,1.56,.64,1) both;
-  }
-  .day-warn.leaving{animation:warn-out .25s ease forwards}
-  @keyframes warn-pop{from{opacity:0;transform:translate(-50%,-20%) scale(.85)}to{opacity:1;transform:translate(-50%,-55%) scale(1)}}
-  @keyframes warn-out{to{opacity:0;transform:translate(-50%,-80%)}}
-  @media (prefers-reduced-motion: reduce){.day-warn,.day-warn.leaving{animation:none}}
-  @media (hover:hover){.day.locked:hover{border-color:var(--line)}}
-  .day.is-next{border-color:var(--line-strong)}
-  .day.flash{animation:flash 1.4s ease;opacity:1}
-  .day.locked .day-step{opacity:.35}
-  @keyframes flash{0%,100%{box-shadow:0 0 0 0 transparent}30%{box-shadow:0 0 0 3px var(--fg)}}
-  .note{margin:24px 0 0;color:var(--muted);font-size:14px}
-
-  /* Excuses */
-  .excuses{margin-top:clamp(40px,6vw,72px);border-top:1px solid var(--line)}
-  .excuse{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px clamp(24px,5vw,80px);padding:30px 0;border-bottom:1px solid var(--line);align-items:baseline}
-  .excuse q{quotes:"“" "”";font-size:clamp(20px,2vw,26px);letter-spacing:-.02em;line-height:1.25;color:var(--muted)}
-  .excuse p{margin:0;font-family:var(--serif);font-style:italic;font-size:clamp(21px,2.1vw,28px);line-height:1.3}
-  @media (max-width:760px){.excuse{grid-template-columns:1fr}}
-
-  /* Final */
-  .final{padding:clamp(96px,14vw,184px) 0;text-align:center;border-top:1px solid var(--line)}
-  .final svg{width:56px;height:56px;margin:0 auto 32px;display:block}
-  .final .disk{fill:var(--moon-lit)}
-  .final h2{margin:0 auto;max-width:none;font-size:clamp(44px,7.4vw,112px);line-height:.98;letter-spacing:-.045em}
-  .final .lede{margin:24px auto 40px}
-  .final .micro{margin:18px 0 0;color:var(--muted);font-size:14px}
-  .final-ctas{display:flex;flex-wrap:wrap;justify-content:center;gap:12px}
-  .btn-icon{width:18px;height:18px;margin-right:8px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-  #share.copied{border-color:var(--fg)}
-
-  /* Support */
-  .support{padding:clamp(80px,11vw,140px) 0;border-top:1px solid var(--line)}
-  .support-inner{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:clamp(32px,6vw,96px);align-items:center}
-  .support-copy .lede{margin:24px 0 32px}
-  .support-copy .micro{margin:16px 0 0;color:var(--muted);font-size:14px}
-  .qr-card{width:min(300px,100%);aspect-ratio:1;max-width:100%;padding:14px;border-radius:24px;background:var(--qr-bg);border:1px solid var(--line-strong)}
-  .qr-card{display:grid;place-items:center;justify-self:end}   /* QR sits on the right edge, lined up with the rest of the page */
-  .qr-card #saweria-qr,.qr-card #saweria-qr canvas,.qr-card #saweria-qr img{display:block;width:100%!important;height:auto!important;image-rendering:pixelated}
-  @media (max-width:760px){.support-inner{grid-template-columns:1fr} .qr-card{justify-self:center}}
-
-  footer{border-top:1px solid var(--line);padding:40px 0 calc(40px + env(safe-area-inset-bottom,0px));color:var(--muted);font-size:14px}
-  footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:16px 40px}
-  footer .brand{color:var(--fg)}
-  footer p{margin:0 0 0 auto;max-width:60ch;text-align:right}
-  @media (max-width:640px){footer p{margin:0;text-align:left}}
-
-  /* Motion: one load moment, then the moon breathes */
-  @media (prefers-reduced-motion: no-preference){
-    .hero-copy > *{animation:rise 1s cubic-bezier(.2,.7,.2,1) both}
-    .hero-copy > :nth-child(2){animation-delay:.08s}
-    .hero-copy > :nth-child(3){animation-delay:.16s}
-    .hero-copy > :nth-child(4){animation-delay:.24s}
-    .hero-moon{animation:moonin 1.8s ease both}
-    .hero-moon svg{animation:breathe 8s ease-in-out infinite}
-    .hero-moon .glow{animation:glow 8s ease-in-out infinite}
-    .moon-glide{animation:glide 2s ease-in-out infinite alternate}
-  }
-  @media (prefers-reduced-motion: reduce){
-    html{scroll-behavior:auto}
-    .more,.more-toggle svg{transition:none}
-    .breath{display:none}
-  }
-  @keyframes rise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-  @keyframes moonin{from{opacity:0}to{opacity:1}}
-  @keyframes breathe{0%,100%{transform:scale(.97)}50%{transform:scale(1.03)}}
-  @keyframes glide{from{transform:translateX(-10px)}to{transform:translateX(10px)}}
-  @keyframes glow{0%,100%{opacity:.45}50%{opacity:1}}
-</style>
-<script>
-  // The site used to be called Chillawah: carry saved progress, language and theme over once
-  try{
-    ["progress-v1", "pages-v1", "lang", "theme"].forEach(function(k){
-      var v = localStorage.getItem("chillawah-" + k);
-      if (v !== null && localStorage.getItem("tilawa-" + k) === null) localStorage.setItem("tilawa-" + k, v);
-    });
-  }catch(e){}
-  // Apply the saved theme before the page paints, so there's no light/dark flash
-  try{ var th = localStorage.getItem("tilawa-theme"); if (th === "dark" || th === "light") document.documentElement.dataset.theme = th; }catch(e){}
-</script>
+<!-- Compiled from styles/app.css by Tailwind (npm run build:css) -->
+<link rel="stylesheet" href="styles/build.css">
+<!-- Runs before the page paints: carries old "chillawah-*" saves over, applies the saved theme (no flash) -->
+<script src="js/boot.js"></script>
 </head>
 <body>
-<a class="skip" href="#schedule" data-i18n="skip"></a>
+<a id="skip" class="absolute -top-[60px] left-3 z-50 rounded-[10px] bg-btn px-3.5 py-2.5 text-btn-fg focus:top-3" href="#schedule" data-i18n="skip"></a>
 
-<header class="nav">
-  <div class="wrap">
-    <a class="brand" href="#top">
-      <svg viewBox="0 0 40 40" aria-hidden="true"><circle class="disk" cx="20" cy="20" r="18"/><path class="lit" d="M20 2A18 18 0 0 1 20 38A9.6 18 0 0 0 20 2Z"/></svg>
-      <span class="brand-word">Tilawa</span>
+<!-- ───────────── Nav ───────────── -->
+<header class="sticky top-0 z-20 border-b border-line bg-nav pt-[env(safe-area-inset-top,0px)] backdrop-blur-[14px] backdrop-saturate-[1.4]">
+  <div class="wrap flex h-16 items-center justify-between gap-6 max-md:gap-3">
+    <a class="inline-flex items-center gap-2.5 text-[18px] font-medium tracking-snug" href="#top">
+      <svg class="size-5" viewBox="0 0 40 40" aria-hidden="true"><circle class="fill-moon-dark stroke-line-strong" cx="20" cy="20" r="18"/><path class="fill-moon-lit" d="M20 2A18 18 0 0 1 20 38A9.6 18 0 0 0 20 2Z"/></svg>
+      <span class="max-xs:hidden">Tilawa</span>
     </a>
-    <nav class="nav-links" aria-label="Main">
-      <a href="#schedule" data-i18n="navSchedule"></a>
-      <a href="#excuses" data-i18n="navExcuses"></a>
-      <a href="#support" data-i18n="navSupport"></a>
-      <button class="lang" id="lang" type="button" data-lang="en" aria-label="Ganti ke Bahasa Indonesia">
+    <nav class="flex items-center gap-7 text-[15px] max-md:gap-2.5" aria-label="Main">
+      <a class="text-muted transition-colors duration-200 hover:text-fg max-md:hidden" href="#schedule" data-i18n="navSchedule"></a>
+      <a class="text-muted transition-colors duration-200 hover:text-fg max-md:hidden" href="#excuses" data-i18n="navExcuses"></a>
+      <a class="text-muted transition-colors duration-200 hover:text-fg max-md:hidden" href="#support" data-i18n="navSupport"></a>
+
+      <button class="lang relative isolate inline-flex h-[38px] items-stretch gap-0.5 rounded-full border border-line-strong p-[3px] text-[13px] leading-none font-medium tracking-[.04em] text-muted transition-colors duration-200 hover:border-fg"
+              id="lang" type="button" data-lang="en" aria-label="Ganti ke Bahasa Indonesia">
         <span class="l-en" aria-hidden="true">EN</span><span class="l-id" aria-hidden="true">ID</span>
       </button>
-      <button class="theme" id="theme" type="button">
-        <svg class="ic-moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
-        <svg class="ic-sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>
+
+      <button class="theme relative grid size-[38px] flex-none place-items-center rounded-full border border-line-strong text-fg transition-colors duration-200 hover:border-fg" id="theme" type="button">
+        <svg class="ic-moon col-start-1 row-start-1 size-[18px] fill-current" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5Z"/></svg>
+        <svg class="ic-sun col-start-1 row-start-1 size-[18px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round]" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill-current stroke-none" cx="12" cy="12" r="4"/><path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4"/></svg>
       </button>
-      <a class="btn btn-primary btn-sm" href="#schedule" data-jump="1" data-i18n="navStart"></a>
+
+      <a class="btn btn-primary btn-sm" id="nav-start" href="#schedule" data-jump="1" data-i18n="navStart"></a>
     </nav>
   </div>
 </header>
 
 <main id="top">
-  <section class="hero">
-    <div class="wrap hero-inner">
-      <div class="hero-copy">
-        <p class="hero-kicker" data-i18n="kicker"></p>
-        <h1 data-i18n="h1"></h1>
-        <p class="hero-sub" data-i18n="heroSub"></p>
-        <div class="hero-ctas">
+  <!-- ───────────── Hero ───────────── -->
+  <section class="relative flex min-h-[calc(100svh-64px)] items-center overflow-hidden pt-[clamp(56px,8vh,96px)] pb-[clamp(72px,10vh,112px)] max-2xl:block max-2xl:min-h-0 max-2xl:pt-8 max-2xl:pb-[72px]">
+    <div class="wrap relative z-1 grid w-full grid-cols-[minmax(0,1fr)_minmax(220px,420px)] items-center gap-[clamp(40px,6vw,96px)] max-2xl:grid-cols-1 max-2xl:gap-[72px]">
+      <div class="hero-copy min-w-0">
+        <p class="mb-[22px] text-[16px] text-muted" data-i18n="kicker"></p>
+        <h1 class="text-hero font-light tracking-display text-balance [&_span]:block" data-i18n="h1"></h1>
+        <p class="mt-8 mb-9 max-w-[52ch] text-sub text-muted" data-i18n="heroSub"></p>
+        <div class="flex flex-wrap gap-3">
           <a class="btn btn-primary" href="#plan" data-i18n="ctaPlan"></a>
           <button class="btn btn-ghost btn-roast" id="later" type="button">
             <span class="lbl lbl-a" data-i18n="laterA"></span>
@@ -459,679 +66,166 @@
           <span class="sr-only" aria-live="polite" id="later-live"></span>
         </div>
       </div>
-      <div class="hero-moon">
-        <div class="moon-glide">
-          <div class="glow" aria-hidden="true"></div>
-          <svg viewBox="0 0 200 200" aria-hidden="true">
-            <circle class="disk" cx="100" cy="100" r="90"/>
-            <path class="lit" id="hero-lit" d=""/>
+
+      <div class="hero-moon pointer-events-none relative aspect-square w-full max-w-full justify-self-end max-2xl:order-first max-2xl:w-[min(58vw,300px)] max-2xl:justify-self-center">
+        <div class="moon-glide absolute inset-0">
+          <div class="glow absolute -inset-[16%] rounded-full bg-[radial-gradient(closest-side,var(--glow),transparent_72%)]" aria-hidden="true"></div>
+          <svg class="relative block size-full origin-center" viewBox="0 0 200 200" aria-hidden="true">
+            <circle class="fill-moon-dark" cx="100" cy="100" r="90"/>
+            <path class="lit fill-moon-lit transition-opacity duration-400" id="hero-lit" d=""/>
           </svg>
-          <button class="moon-tap" id="moon-tap" type="button"></button>
+          <button class="moon-tap pointer-events-auto absolute inset-[5%] rounded-full [-webkit-tap-highlight-color:transparent] focus-visible:rounded-full focus-visible:outline-offset-4" id="moon-tap" type="button"></button>
         </div>
-        <div class="breath" id="breath" data-phase="in" aria-hidden="true"><span data-i18n="breathIn"></span><span data-i18n="breathOut"></span></div>
+        <div class="breath pointer-events-none absolute top-1/2 left-1/2 -translate-1/2 text-[13px] tracking-label whitespace-nowrap text-muted uppercase opacity-0 transition-opacity duration-900 [&.show]:opacity-100"
+             id="breath" data-phase="in" aria-hidden="true"><span data-i18n="breathIn"></span><span data-i18n="breathOut"></span></div>
       </div>
     </div>
   </section>
 
-  <div class="more-toggle-wrap">
-    <button class="more-toggle" id="more-toggle" type="button" aria-expanded="false" aria-controls="more">
-      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
+  <!-- ───────────── Accordion: stats, screen time, plan ───────────── -->
+  <div class="relative z-2 flex h-0 justify-center border-t border-line">
+    <button class="group absolute top-0 grid size-10 -translate-y-1/2 place-items-center rounded-full border border-line-strong bg-bg text-muted transition-colors duration-200 hover:border-fg hover:text-fg"
+            id="more-toggle" type="button" aria-expanded="false" aria-controls="more">
+      <svg class="size-[18px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round] transition-transform duration-350 group-aria-expanded:rotate-180 motion-reduce:transition-none" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg>
     </button>
   </div>
 
-  <div class="more" id="more">
-  <div class="more-inner" inert>
-  <div class="stats">
-    <div class="wrap">
-      <p data-i18n="stats"></p>
-    </div>
-  </div>
-
-  <section class="section" id="reality">
-    <div class="wrap">
-      <div class="split">
-        <h2 data-i18n="realityH"></h2>
-        <p class="big" data-i18n="realityP"></p>
-      </div>
-      <figure class="ayah">
-        <blockquote><p data-i18n="ayah"></p></blockquote>
-        <figcaption>
-          <span>QS Ar-Ra’d 13:28</span>
-          <span data-i18n="ayahNote"></span>
-        </figcaption>
-      </figure>
-    </div>
-  </section>
-
-  <section class="section" id="plan">
-    <div class="wrap">
-      <h2 data-i18n="planH"></h2>
-      <p class="lede" data-i18n="planLede"></p>
-      <div class="rows">
-        <div class="row">
-          <h3 data-i18n="r1h"></h3>
-          <p data-i18n="r1p"></p>
-        </div>
-        <div class="row">
-          <h3 data-i18n="r2h"></h3>
-          <p data-i18n="r2p"></p>
-        </div>
-        <div class="row">
-          <h3 data-i18n="r3h"></h3>
-          <p data-i18n="r3p"></p>
-        </div>
-        <div class="row">
-          <h3 data-i18n="r4h"></h3>
-          <p data-i18n="r4p"></p>
+  <div class="more peer grid grid-rows-[0fr] transition-[grid-template-rows] duration-500 motion-reduce:transition-none [&.open]:grid-rows-[1fr]" id="more">
+    <div class="more-inner min-h-0 overflow-hidden" inert>
+      <div class="border-b border-line">
+        <div class="wrap">
+          <p class="py-[clamp(48px,8vw,96px)] text-stats font-light tracking-stats [&_span]:inline-block max-md:[&_span]:block" data-i18n="stats"></p>
         </div>
       </div>
+
+      <section class="section-y" id="reality">
+        <div class="wrap">
+          <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start gap-[clamp(24px,5vw,80px)] max-xl:grid-cols-1">
+            <h2 class="max-w-[16ch] text-h2 font-light tracking-title" data-i18n="realityH"></h2>
+            <p class="max-w-[46ch] text-big tracking-[-.01em]" data-i18n="realityP"></p>
+          </div>
+          <figure class="mt-[clamp(64px,9vw,120px)] border-t border-line pt-[clamp(40px,6vw,64px)]">
+            <blockquote><p class="max-w-[22ch] font-serif text-ayah font-light tracking-[-.015em] italic" data-i18n="ayah"></p></blockquote>
+            <figcaption class="mt-6 flex flex-wrap gap-x-6 gap-y-1.5 text-[15px] text-muted">
+              <span>QS Ar-Ra’d 13:28</span>
+              <span class="[&_a]:text-fg [&_a]:underline [&_a]:underline-offset-3" data-i18n="ayahNote"></span>
+            </figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="section-y border-t border-line" id="plan">
+        <div class="wrap">
+          <h2 class="max-w-[16ch] text-h2 font-light tracking-title" data-i18n="planH"></h2>
+          <p class="mt-6 max-w-[56ch] text-lede text-muted" data-i18n="planLede"></p>
+          <div class="mt-[clamp(40px,6vw,72px)] border-t border-line">
+            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
+              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r1h"></h3>
+              <p class="max-w-[56ch] text-muted" data-i18n="r1p"></p>
+            </div>
+            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
+              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r2h"></h3>
+              <p class="max-w-[56ch] text-muted" data-i18n="r2p"></p>
+            </div>
+            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
+              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r3h"></h3>
+              <p class="max-w-[56ch] text-muted" data-i18n="r3p"></p>
+            </div>
+            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
+              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r4h"></h3>
+              <p class="max-w-[56ch] text-muted" data-i18n="r4p"></p>
+            </div>
+          </div>
+        </div>
+      </section>
     </div>
-  </section>
-  </div>
   </div>
 
-  <section class="section" id="schedule">
+  <!-- ───────────── Schedule (cards are built by js/schedule.js) ───────────── -->
+  <section class="section-y peer-[.open]:border-t peer-[.open]:border-line" id="schedule">
     <div class="wrap">
-      <h2 data-i18n="schedH"></h2>
-      <p class="lede" data-i18n="schedLede"></p>
-      <div class="progress">
-        <div class="progress-count"><span id="count">0</span><small>/29</small></div>
+      <h2 class="max-w-[16ch] text-h2 font-light tracking-title" data-i18n="schedH"></h2>
+      <p class="mt-6 max-w-[56ch] text-lede text-muted" data-i18n="schedLede"></p>
+
+      <div class="mt-10 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-7 gap-y-3 border-t border-line py-6 max-md:grid-cols-[auto_minmax(0,1fr)]">
+        <div class="text-count font-light tracking-stats tabular-nums"><span id="count">0</span><small class="ml-0.5 text-[.42em] tracking-[-.01em] text-muted">/29</small></div>
         <div>
-          <p class="progress-msg" id="msg" aria-live="polite"></p>
-          <div class="bar"><i id="bar"></i></div>
+          <p class="mb-2.5 min-h-[1.4em] text-[17px] leading-[1.4] max-md:flex max-md:min-h-[2.8em] max-md:items-end" id="msg" aria-live="polite"></p>
+          <div class="h-0.5 overflow-hidden rounded-[2px] bg-line"><i class="block h-full w-0 bg-fg transition-[width] duration-500 motion-reduce:transition-none" id="bar"></i></div>
         </div>
-        <button class="reset" id="reset" type="button" disabled></button>
+        <button class="py-1.5 text-[14px] text-muted underline underline-offset-3 hover:text-fg disabled:cursor-default disabled:no-underline disabled:opacity-40 max-md:col-span-full max-md:justify-self-start [&.armed]:text-fg"
+                id="reset" type="button" disabled></button>
       </div>
-      <div class="grid" id="grid"></div>
-      <p class="note" data-i18n="note"></p>
+
+      <div class="mt-2 grid grid-cols-[repeat(auto-fill,minmax(212px,1fr))] gap-3 max-sm:grid-cols-2 max-sm:gap-2.5" id="grid"></div>
+      <p class="mt-6 text-[14px] text-muted" data-i18n="note"></p>
     </div>
   </section>
 
-  <section class="section" id="excuses">
+  <!-- ───────────── Excuses ───────────── -->
+  <section class="section-y border-t border-line" id="excuses">
     <div class="wrap">
-      <h2 data-i18n="excH"></h2>
-      <div class="excuses">
-        <div class="excuse"><q data-i18n="e1q"></q><p data-i18n="e1a"></p></div>
-        <div class="excuse"><q data-i18n="e2q"></q><p data-i18n="e2a"></p></div>
-        <div class="excuse"><q data-i18n="e3q"></q><p data-i18n="e3a"></p></div>
-        <div class="excuse"><q data-i18n="e4q"></q><p data-i18n="e4a"></p></div>
-        <div class="excuse"><q data-i18n="e5q"></q><p data-i18n="e5a"></p></div>
-        <div class="excuse"><q data-i18n="e6q"></q><p data-i18n="e6a"></p></div>
+      <h2 class="max-w-[16ch] text-h2 font-light tracking-title" data-i18n="excH"></h2>
+      <div class="mt-[clamp(40px,6vw,72px)] border-t border-line">
+        <div class="grid grid-cols-2 items-baseline gap-x-[clamp(24px,5vw,80px)] gap-y-2 border-b border-line py-[30px] max-lg:grid-cols-1"><q class="text-quote tracking-snug text-muted" data-i18n="e1q"></q><p class="font-serif text-answer italic" data-i18n="e1a"></p></div>
+        <div class="grid grid-cols-2 items-baseline gap-x-[clamp(24px,5vw,80px)] gap-y-2 border-b border-line py-[30px] max-lg:grid-cols-1"><q class="text-quote tracking-snug text-muted" data-i18n="e2q"></q><p class="font-serif text-answer italic" data-i18n="e2a"></p></div>
+        <div class="grid grid-cols-2 items-baseline gap-x-[clamp(24px,5vw,80px)] gap-y-2 border-b border-line py-[30px] max-lg:grid-cols-1"><q class="text-quote tracking-snug text-muted" data-i18n="e3q"></q><p class="font-serif text-answer italic" data-i18n="e3a"></p></div>
+        <div class="grid grid-cols-2 items-baseline gap-x-[clamp(24px,5vw,80px)] gap-y-2 border-b border-line py-[30px] max-lg:grid-cols-1"><q class="text-quote tracking-snug text-muted" data-i18n="e4q"></q><p class="font-serif text-answer italic" data-i18n="e4a"></p></div>
+        <div class="grid grid-cols-2 items-baseline gap-x-[clamp(24px,5vw,80px)] gap-y-2 border-b border-line py-[30px] max-lg:grid-cols-1"><q class="text-quote tracking-snug text-muted" data-i18n="e5q"></q><p class="font-serif text-answer italic" data-i18n="e5a"></p></div>
+        <div class="grid grid-cols-2 items-baseline gap-x-[clamp(24px,5vw,80px)] gap-y-2 border-b border-line py-[30px] max-lg:grid-cols-1"><q class="text-quote tracking-snug text-muted" data-i18n="e6q"></q><p class="font-serif text-answer italic" data-i18n="e6a"></p></div>
       </div>
     </div>
   </section>
 
-  <section class="final" id="start">
+  <!-- ───────────── Closing ───────────── -->
+  <section class="border-t border-line py-[clamp(96px,14vw,184px)] text-center" id="start">
     <div class="wrap">
-      <svg viewBox="0 0 40 40" aria-hidden="true"><circle class="disk" cx="20" cy="20" r="18"/></svg>
-      <h2 data-i18n="finalH"></h2>
-      <p class="lede" data-i18n="finalLede"></p>
-      <div class="final-ctas">
+      <svg class="mx-auto mb-8 block size-14" viewBox="0 0 40 40" aria-hidden="true"><circle class="fill-moon-lit" cx="20" cy="20" r="18"/></svg>
+      <h2 class="mx-auto text-final font-light tracking-display" data-i18n="finalH"></h2>
+      <p class="mx-auto mt-6 mb-10 max-w-[56ch] text-lede text-muted" data-i18n="finalLede"></p>
+      <div class="flex flex-wrap justify-center gap-3">
         <a class="btn btn-primary" href="#schedule" data-jump="1" data-i18n="finalCta"></a>
-        <button class="btn btn-ghost" id="share" type="button">
-          <svg class="btn-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg>
+        <button class="btn btn-ghost [&.copied]:border-fg" id="share" type="button">
+          <svg class="mr-2 size-[18px] flex-none fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a4.5 4.5 0 0 0 6.4 0l3.2-3.2a4.5 4.5 0 0 0-6.4-6.4L12 5.6"/><path d="M14 10a4.5 4.5 0 0 0-6.4 0l-3.2 3.2a4.5 4.5 0 0 0 6.4 6.4l1.2-1.2"/></svg>
           <span id="share-label" data-i18n="shareCta"></span>
         </button>
       </div>
       <p class="sr-only" id="share-live" aria-live="polite"></p>
-      <p class="micro" data-i18n="finalMicro"></p>
+      <p class="mt-[18px] text-[14px] text-muted" data-i18n="finalMicro"></p>
     </div>
   </section>
 
-  <section class="support" id="support">
-    <div class="wrap support-inner">
-      <div class="support-copy">
-        <h2 data-i18n="supportH"></h2>
-        <p class="lede" data-i18n="supportP"></p>
+  <!-- ───────────── Support (Saweria) ───────────── -->
+  <section class="border-t border-line py-[clamp(80px,11vw,140px)]" id="support">
+    <div class="wrap grid grid-cols-[minmax(0,1fr)_minmax(0,300px)] items-center gap-[clamp(32px,6vw,96px)] max-lg:grid-cols-1">
+      <div>
+        <h2 class="max-w-[16ch] text-h2 font-light tracking-title" data-i18n="supportH"></h2>
+        <p class="mt-6 mb-8 max-w-[56ch] text-lede text-muted" data-i18n="supportP"></p>
         <a class="btn btn-primary" id="saweria-link" target="_blank" rel="noopener" data-i18n="supportCta"></a>
-        <p class="micro" data-i18n="supportNote"></p>
+        <p class="mt-4 text-[14px] text-muted" data-i18n="supportNote"></p>
       </div>
-      <div class="qr-card">
+      <div class="qr-card grid aspect-square w-[min(300px,100%)] max-w-full place-items-center justify-self-end rounded-3xl border border-line-strong bg-qr p-3.5 max-lg:justify-self-center">
         <div id="saweria-qr" role="img" aria-label="QR code Saweria"></div>
       </div>
     </div>
   </section>
 </main>
 
-<footer>
-  <div class="wrap">
-    <a class="brand" href="#top">
-      <svg viewBox="0 0 40 40" aria-hidden="true"><circle class="disk" cx="20" cy="20" r="18"/><path class="lit" d="M20 2A18 18 0 0 1 20 38A9.6 18 0 0 0 20 2Z"/></svg>
+<!-- ───────────── Footer ───────────── -->
+<footer class="border-t border-line pt-10 pb-[calc(40px+env(safe-area-inset-bottom,0px))] text-[14px] text-muted">
+  <div class="wrap flex flex-wrap items-center justify-between gap-x-10 gap-y-4">
+    <a class="inline-flex items-center gap-2.5 text-[18px] font-medium tracking-snug text-fg" href="#top">
+      <svg class="size-5" viewBox="0 0 40 40" aria-hidden="true"><circle class="fill-moon-dark stroke-line-strong" cx="20" cy="20" r="18"/><path class="fill-moon-lit" d="M20 2A18 18 0 0 1 20 38A9.6 18 0 0 0 20 2Z"/></svg>
       Tilawa
     </a>
-    <p data-i18n="footer"></p>
+    <p class="ml-auto max-w-[60ch] text-right max-md:ml-0 max-md:text-left" data-i18n="footer"></p>
   </div>
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <script src="lang/en.js"></script>
 <script src="lang/id.js"></script>
-<script>
-// Started by the module script at the bottom, once the Rust/WASM core has loaded.
-function startTilawa(core){
-  // Saweria support link (button + QR widget at the bottom of the page)
-  // Ganti dengan link profil Saweria kamu, mis. "https://saweria.co/namakamu".
-  // Tombol dan QR code sama-sama memakai link ini.
-  var SAWERIA_URL = "https://saweria.co/aulcoding";
-  document.getElementById("saweria-link").href = SAWERIA_URL;
-  var qrBox = document.getElementById("saweria-qr");
-  if (window.QRCode) {
-    new QRCode(qrBox, {text: SAWERIA_URL, width: 512, height: 512,
-      colorDark: "#0B0C0E", colorLight: "#FFFFFF", correctLevel: QRCode.CorrectLevel.M});
-    qrBox.removeAttribute("title");   // the library adds a tooltip with the raw URL
-  } else {
-    qrBox.closest(".qr-card").hidden = true;   // offline: keep just the button
-  }
-
-  // All page text lives in lang/en.js and lang/id.js.
-  var L = window.TILAWA_LANG || {};
-  var T = {
-    en: L.en || {},
-    id: Object.assign({}, L.en || {}, L.id || {})  // missing Indonesian keys fall back to English
-  };
-
-  // The 29 days (surahs, page ranges from quran.json) are built in Rust: crates/tilawa-core/src/lib.rs
-  var DAYS = JSON.parse(core.days_json());
-  var KEY = "tilawa-progress-v1";
-  var LANG_KEY = "tilawa-lang";
-  var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-
-  var PAGES_KEY = "tilawa-pages-v1";
-  function total(i){ return DAYS[i].pg[1] - DAYS[i].pg[0] + 1; }
-  // Progress rules (order, limits, old-save conversion) live in Rust; `pages` is a read-only mirror for drawing.
-  function save(){
-    try{
-      localStorage.setItem(PAGES_KEY, core.to_json());
-      localStorage.setItem(KEY, core.finished_days_json());   // kept for older versions
-    }catch(e){}
-  }
-
-  // Moon phase per day: a visible crescent on Day 1, full on Day 15, a last sliver on Day 29.
-  // The lit part has two layers: a dim one, and a bright one behind a clip that rises
-  // from the bottom to the top when the day is finished.
-  function moonSVG(n){
-    var p = n <= 15 ? 0.08 + (n - 1) * 0.03 : 0.5 + (n - 15) * 0.03;
-    var r = 18, c = 20, shape;
-    if (Math.abs(p - 0.5) < 0.001){
-      shape = function(cls){ return '<circle class="'+cls+'" cx="'+c+'" cy="'+c+'" r="'+r+'"/>'; };
-    } else {
-      var rx = (r * Math.abs(Math.cos(2 * Math.PI * p))).toFixed(2);
-      var wax = p < 0.5;
-      var outer = wax ? 1 : 0;
-      var inner = wax ? (p < 0.25 ? 0 : 1) : (p > 0.75 ? 1 : 0);
-      var d = 'M'+c+' '+(c-r)+'A'+r+' '+r+' 0 0 '+outer+' '+c+' '+(c+r)+'A'+rx+' '+r+' 0 0 '+inner+' '+c+' '+(c-r)+'Z';
-      shape = function(cls){ return '<path class="'+cls+'" d="'+d+'"/>'; };
-    }
-    return '<svg class="day-moon" viewBox="0 0 40 40" aria-hidden="true">'
-      + '<defs><clipPath id="rise-'+n+'"><rect class="rise" x="0" y="0" width="40" height="40"/></clipPath></defs>'
-      + '<circle class="disk" cx="'+c+'" cy="'+c+'" r="'+r+'"/>'
-      + shape("lit-base")
-      + '<g clip-path="url(#rise-'+n+')">' + shape("lit-on") + '</g>'
-      + '</svg>';
-  }
-
-  var lang = "en";
-  var grid = document.getElementById("grid");
-  function renderGrid(){
-    var t = T[lang];
-    t.tags = t.tags || {};
-    grid.innerHTML = DAYS.map(function(d, i){
-      var n = i + 1;
-      var range = d.r[0] === d.r[1] ? t.surah + d.r[0] : t.surahs + d.r[0] + "–" + d.r[1];
-      var tot = total(i);
-      return '<article class="day" id="day-'+n+'" data-day="'+n+'">'
-        + '<button class="day-hit" type="button"></button>'
-        + '<div class="day-top"><span class="day-num">'+t.day+'<b>'+n+'</b></span>'+moonSVG(n)+'</div>'
-        + (d.tag ? '<span class="day-tag">'+t.tags[d.tag]+'</span>' : '')
-        + '<div class="day-surahs">'+d.s.map(function(x){ return '<span>'+x.split(' – ').map(function(y){ return '<span class="nw">'+y+'</span>'; }).join(' – ')+'</span>'; }).join('')+'</div>'
-        + '<p class="day-status" aria-live="polite"></p>'
-        + '<div class="day-prog">'
-        +   '<div class="day-bar"><i></i></div>'
-        +   '<div class="day-prog-row">'
-        +     '<span class="day-count"><b>0</b>/'+tot+' '+t.pagesUnit+'</span>'
-        +     '<span class="day-ctrl">'
-        +       '<button class="day-step" type="button" data-step="-1" aria-label="'+t.pageMinus+'">−</button>'
-        +       '<button class="day-step" type="button" data-step="1" aria-label="'+t.pagePlus+'">+</button>'
-        +     '</span>'
-        +   '</div>'
-        + '</div>'
-        + '<div class="day-meta"><span>'+range+'</span><span>'+t.pagesShort+' '+d.pg[0]+'–'+d.pg[1]+'</span></div>'
-        + '</article>';
-    }).join("");
-  }
-
-  var pages = Array.from(core.pages());
-  function sync(){ pages = Array.from(core.pages()); }
-  var done = new Set();
-  var cheerText = {};   // the line currently shown on each unfinished card
-  var countEl = document.getElementById("count");
-  var msgEl = document.getElementById("msg");
-  var barEl = document.getElementById("bar");
-  var resetBtn = document.getElementById("reset");
-
-  // Line next to the big progress number. Changes when a day is finished:
-  // warm lines while on Day 1, lightly sarcastic ones from Day 2 on.
-  var topLine = "";
-  function rollTop(){
-    var t = T[lang], n = done.size, pool;
-    if (n >= 29 || (n === 0 && pages[0] === 0)){ topLine = ""; return; }
-    pool = (n === 0 ? t.progressDay1 : t.progress) || [];
-    if (!pool.length){ topLine = ""; return; }
-    var pick;
-    do { pick = pool[Math.floor(Math.random() * pool.length)]; } while (pool.length > 1 && pick === topLine);
-    topLine = pick;
-  }
-  function message(n){
-    var m = T[lang].msg;
-    if (n === 0 && pages[0] === 0) return m[0];
-    if (n >= 29) return m[3];
-    if (topLine) return topLine;
-    return n < 15 ? m[1] : m[2];
-  }
-  function update(){
-    done = new Set();
-    for (var i = 0; i < 29 && pages[i] >= total(i); i++) done.add(i + 1);
-    var n = done.size, cur = n + 1, t = T[lang];
-    countEl.textContent = n;
-    barEl.style.width = (n / 29 * 100) + "%";
-    msgEl.textContent = message(n);
-    resetBtn.disabled = pages.every(function(v){ return v === 0; });
-    grid.querySelectorAll(".day").forEach(function(card){
-      var d = +card.dataset.day, i = d - 1, tot = total(i), v = pages[i];
-      var isDone = v >= tot, locked = d > cur;
-      card.classList.toggle("is-done", isDone);
-      card.classList.toggle("locked", locked);
-      card.classList.toggle("is-next", d === cur);
-      card.style.setProperty("--fill", (v / tot * 100) + "%");
-      card.querySelector(".day-count b").textContent = v;
-      var status = isDone ? ((t.doneDays && t.doneDays[i]) || t.done) : (v > 0 ? (cheerText[d] || "") : "");
-      var st = card.querySelector(".day-status");
-      if (st.textContent !== status) st.textContent = status;
-      card.classList.toggle("has-status", !!status);
-      var canMinus = core.can_remove(d), canPlus = core.can_add(d);   // decided in Rust
-      card.querySelector('[data-step="-1"]').setAttribute("aria-disabled", canMinus ? "false" : "true");
-      card.querySelector('[data-step="1"]').setAttribute("aria-disabled", canPlus ? "false" : "true");
-      card.querySelector(".day-hit").setAttribute("aria-label",
-        t.day + " " + d + ": " + v + "/" + tot + " " + t.pagesUnit + (canPlus ? ". " + t.pagePlus : ""));
-    });
-  }
-
-  function cheer(d){
-    var list = T[lang].cheer || [];
-    if (!list.length) return "";
-    var left = total(d - 1) - pages[d - 1], pick;
-    do { pick = list[Math.floor(Math.random() * list.length)]; } while (list.length > 1 && pick.replace("{left}", left) === cheerText[d]);
-    return pick.replace("{left}", left);
-  }
-
-  // Days must be finished in order. Only the next day can be ticked,
-  // and only the last finished day can be unticked.
-  var hintTimer;
-  function hint(text, dayToShow){
-    clearTimeout(hintTimer);
-    msgEl.textContent = text;
-    var t = document.getElementById("day-" + dayToShow);
-    if (t){ t.classList.remove("flash"); void t.offsetWidth; t.classList.add("flash"); }
-    hintTimer = setTimeout(function(){ msgEl.textContent = message(done.size); }, 2800);
-  }
-
-  // Tapping a day ahead of schedule: the day still waiting gets a "don't skip" bubble
-  var warnTimer;
-  function warnSkip(day){
-    var t = document.getElementById("day-" + day);
-    if (!t) return;
-    clearTimeout(warnTimer);
-    grid.querySelectorAll(".day-warn").forEach(function(w){ w.remove(); });
-    var w = document.createElement("span");
-    w.className = "day-warn";
-    w.setAttribute("role", "alert");
-    w.textContent = T[lang].skipWarn;
-    t.appendChild(w);
-    t.classList.remove("flash"); void t.offsetWidth; t.classList.add("flash");
-    var r = t.getBoundingClientRect();
-    if (r.top < 90 || r.bottom > innerHeight) t.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "center"});
-    warnTimer = setTimeout(function(){
-      w.classList.add("leaving");
-      setTimeout(function(){ w.remove(); }, reduce ? 0 : 260);
-    }, 2600);
-  }
-
-  // Tap the card or "+" = one page read. "−" takes a page back.
-  grid.addEventListener("click", function(e){
-    var card = e.target.closest(".day");
-    if (!card) return;
-    var stepBtn = e.target.closest(".day-step");
-    var step = stepBtn ? +stepBtn.dataset.step : 1;
-    var d = +card.dataset.day;
-    var n = done.size;
-    var out = JSON.parse(step > 0 ? core.add_page(d) : core.remove_page(d));   // Rust decides
-    if (out.kind === "locked") return warnSkip(out.next);
-    if (out.kind === "undofromend") return hint(T[lang].undoLast.replace("{n}", out.last), out.last);
-    if (out.kind === "noop") return;
-    sync();
-    if (out.kind === "finished"){
-      delete cheerText[d];
-      card.classList.add("just-done");
-      setTimeout(function(){ card.classList.remove("just-done"); }, 1600);
-    } else {
-      cheerText[d] = cheer(d);
-    }
-    clearTimeout(hintTimer);
-    save(); update();
-    if (done.size !== n || !topLine) rollTop();   // the top line only changes when a day is finished (or un-finished)
-    msgEl.textContent = message(done.size);
-    var st = card.querySelector(".day-status");   // replay the little rise on every new line
-    st.style.animation = "none"; void st.offsetWidth; st.style.animation = "";
-  });
-
-  // Two-tap reset, no dialog needed
-  var armTimer;
-  function disarm(){
-    clearTimeout(armTimer);
-    resetBtn.classList.remove("armed");
-    resetBtn.textContent = T[lang].reset;
-  }
-  resetBtn.addEventListener("click", function(){
-    if (resetBtn.classList.contains("armed")){
-      disarm();
-      core.reset(); sync(); cheerText = {}; save(); update();
-      return;
-    }
-    resetBtn.classList.add("armed");
-    resetBtn.textContent = T[lang].resetArmed;
-    armTimer = setTimeout(disarm, 3000);
-  });
-
-  // Jump links to a specific day (delegated, so translated links keep working)
-  document.addEventListener("click", function(e){
-    var a = e.target.closest("[data-jump]");
-    if (!a) return;
-    var t = document.getElementById("day-" + a.dataset.jump);
-    if (!t) return;
-    e.preventDefault();
-    t.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "center"});
-    t.classList.remove("flash"); void t.offsetWidth; t.classList.add("flash");
-    setTimeout(function(){ (t.querySelector(".day-hit") || t).focus({preventScroll:true}); }, 450);
-  });
-
-  // "I'll start tomorrow"
-  var later = document.getElementById("later");
-  var laterLive = document.getElementById("later-live");
-  var laterTimer;
-  later.addEventListener("click", function(){
-    later.classList.add("roasted");
-    laterLive.textContent = T[lang].later;
-    clearTimeout(laterTimer);
-    laterTimer = setTimeout(function(){
-      later.classList.remove("roasted");
-      laterLive.textContent = "";
-    }, 2400);
-  });
-
-  // Copy page link so people can send it to a friend
-  var shareBtn = document.getElementById("share");
-  var shareLabel = document.getElementById("share-label");
-  var shareLive = document.getElementById("share-live");
-  var shareTimer;
-  function pageUrl(){ return location.href.split("#")[0]; }
-  function copyFallback(text){
-    var ta = document.createElement("textarea");
-    ta.value = text; ta.setAttribute("readonly", "");
-    ta.style.position = "fixed"; ta.style.opacity = "0";
-    document.body.appendChild(ta); ta.select();
-    var ok = false;
-    try{ ok = document.execCommand("copy"); }catch(e){}
-    document.body.removeChild(ta);
-    return ok;
-  }
-  function shareResult(ok){
-    var text = ok ? T[lang].shareDone : T[lang].shareFail;
-    shareLabel.textContent = text;
-    shareLive.textContent = text;
-    shareBtn.classList.toggle("copied", ok);
-    clearTimeout(shareTimer);
-    shareTimer = setTimeout(function(){
-      shareLabel.innerHTML = T[lang].shareCta;
-      shareLive.textContent = "";
-      shareBtn.classList.remove("copied");
-    }, 2600);
-  }
-  shareBtn.addEventListener("click", function(){
-    var url = pageUrl();
-    if (navigator.clipboard && navigator.clipboard.writeText){
-      navigator.clipboard.writeText(url).then(function(){ shareResult(true); },
-        function(){ shareResult(copyFallback(url)); });
-    } else {
-      shareResult(copyFallback(url));
-    }
-  });
-
-  // Language switch
-  var nodes = Array.prototype.slice.call(document.querySelectorAll("[data-i18n]"));
-  var langBtn = document.getElementById("lang");
-
-  // Hero moon: each tap grows it one step toward full moon; after full it goes dark again.
-  var MOON_STEPS = 8;          // taps from dark (0) to full (8)
-  var moonStep = 3;            // starts as a crescent
-  var moonP = moonStep / (MOON_STEPS * 2);   // 0 = dark, 0.5 = full
-  var heroLit = document.getElementById("hero-lit");
-  var moonBtn = document.getElementById("moon-tap");
-  var moonAnim;
-
-  function heroPath(p){
-    var r = 90, c = 100;
-    if (p <= 0.001) return "";
-    if (p >= 0.499) return "M"+c+" "+(c-r)+"A"+r+" "+r+" 0 1 1 "+c+" "+(c+r)+"A"+r+" "+r+" 0 1 1 "+c+" "+(c-r)+"Z";
-    var rx = (r * Math.abs(Math.cos(2 * Math.PI * p))).toFixed(2);
-    var inner = p < 0.25 ? 0 : 1;
-    return "M"+c+" "+(c-r)+"A"+r+" "+r+" 0 0 1 "+c+" "+(c+r)+"A"+rx+" "+r+" 0 0 "+inner+" "+c+" "+(c-r)+"Z";
-  }
-  function drawMoon(p){ moonP = p; heroLit.setAttribute("d", heroPath(p)); }
-  function tweenMoon(to){
-    cancelAnimationFrame(moonAnim);
-    var from = moonP, t0 = null, dur = reduce ? 0 : 550;
-    function frame(t){
-      if (t0 === null) t0 = t;
-      var k = dur ? Math.min(1, (t - t0) / dur) : 1;
-      var e = 1 - Math.pow(1 - k, 3);   // ease-out
-      drawMoon(from + (to - from) * e);
-      if (k < 1) moonAnim = requestAnimationFrame(frame);
-    }
-    moonAnim = requestAnimationFrame(frame);
-  }
-  drawMoon(moonP);
-
-  moonBtn.addEventListener("click", function(){
-    if (moonStep >= MOON_STEPS){
-      // Full moon: fade out, then back to dark
-      moonStep = 0;
-      cancelAnimationFrame(moonAnim);
-      heroLit.classList.add("fading");
-      setTimeout(function(){ drawMoon(0); heroLit.classList.remove("fading"); }, reduce ? 0 : 400);
-      return;
-    }
-    moonStep++;
-    tweenMoon(moonStep / (MOON_STEPS * 2));
-  });
-
-  // Accordion: stats, "screen time" and "plan" sections stay folded until the chevron is tapped
-  var more = document.getElementById("more");
-  var moreInner = more.querySelector(".more-inner");
-  var moreBtn = document.getElementById("more-toggle");
-  function setMore(open){
-    more.classList.toggle("open", open);
-    moreBtn.setAttribute("aria-expanded", open ? "true" : "false");
-    moreBtn.setAttribute("aria-label", open ? T[lang].moreClose : T[lang].moreOpen);
-    moreBtn.title = moreBtn.getAttribute("aria-label");
-    if (open) moreInner.removeAttribute("inert"); else moreInner.setAttribute("inert", "");
-  }
-  moreBtn.addEventListener("click", function(){
-    setMore(!more.classList.contains("open"));
-  });
-  // Links that point inside the folded part (e.g. the hero's "show me the plan") open it first
-  function openFor(hash){
-    var t = hash && hash.length > 1 && document.getElementById(hash.slice(1));
-    if (!t || !more.contains(t)) return false;
-    if (!more.classList.contains("open")){
-      // Open instantly (no height animation), so the scroll target is measured at its final spot
-      more.style.transition = "none";
-      setMore(true);
-      void more.offsetHeight;               // apply the full height now
-      more.style.transition = "";
-    }
-    t.scrollIntoView({behavior: reduce ? "auto" : "smooth", block: "start"});
-    return true;
-  }
-  document.addEventListener("click", function(e){
-    var a = e.target.closest('a[href^="#"]');
-    if (a && openFor(a.getAttribute("href"))) e.preventDefault();
-  });
-
-  // Breathe in / out: every 4 s (in step with the moon's 8 s breathing) the label
-  // fades out, jumps to a random point just outside the moon, swaps text and fades back in.
-  var breath = document.getElementById("breath");
-  var moonBox = breath.parentElement;
-  function placeBreath(){
-    var w = moonBox.clientWidth, h = moonBox.clientHeight;
-    var a = Math.random() * Math.PI * 2;
-    var R = 0.53 + Math.random() * 0.07;         // disk edge is at 0.45 of the box
-    var x = w / 2 + Math.cos(a) * w * R;
-    var y = h / 2 + Math.sin(a) * h * R;
-    var half = breath.offsetWidth / 2, slack = 24; // keep the label near the moon box
-    x = Math.max(half - slack, Math.min(w - half + slack, x));
-    breath.style.left = x + "px";
-    breath.style.top = y + "px";
-  }
-  function breathCycle(phase){
-    breath.dataset.phase = phase;
-    placeBreath();
-    breath.classList.add("show");
-    setTimeout(function(){ breath.classList.remove("show"); }, 3000);
-    setTimeout(function(){ breathCycle(phase === "in" ? "out" : "in"); }, 4000);
-  }
-  if (!reduce) breathCycle("in");
-
-  function applyLang(){
-    nodes.forEach(function(el){
-      var k = el.dataset.i18n;
-      if (T[lang][k] != null) el.innerHTML = T[lang][k];
-    });
-    document.documentElement.lang = lang;
-    document.title = T[lang].title;
-    langBtn.setAttribute("aria-label", T[lang].langLabel);
-    moonBtn.setAttribute("aria-label", T[lang].moonLabel);
-    themeLabel();
-    setMore(more.classList.contains("open"));
-    disarm();
-    renderGrid();
-    update();
-    rollTop(); msgEl.textContent = message(done.size);
-  }
-
-  // Text swipe on language change: old text slides up and fades out,
-  // new text comes up from below. Web Animations, so it also wins over
-  // the hero's load-in CSS animation.
-  var SWIPE_OUT = 170, swapTimer = null, outAnims = [];
-  function swipeTargets(){
-    var list = nodes.filter(function(el){
-      return !el.closest(".btn-roast") && !el.closest(".breath") && !el.closest(".skip");
-    });
-    return list.concat([later, grid, msgEl, resetBtn]);
-  }
-  // Light / dark: follows the device until the viewer picks one; the pick is remembered
-  var THEME_KEY = "tilawa-theme";
-  var themeBtn = document.getElementById("theme");
-  var sysDark = window.matchMedia ? window.matchMedia("(prefers-color-scheme: dark)") : null;
-  function currentTheme(){
-    var t = document.documentElement.dataset.theme;
-    return t === "dark" || t === "light" ? t : (sysDark && sysDark.matches ? "dark" : "light");
-  }
-  function themeLabel(){
-    var label = currentTheme() === "dark" ? T[lang].themeToLight : T[lang].themeToDark;
-    themeBtn.setAttribute("aria-label", label);
-    themeBtn.title = label;
-  }
-  var themeAnimTimer;
-  themeBtn.addEventListener("click", function(){
-    var next = currentTheme() === "dark" ? "light" : "dark";
-    var root = document.documentElement;
-    if (!reduce){ root.classList.add("theme-anim"); clearTimeout(themeAnimTimer); themeAnimTimer = setTimeout(function(){ root.classList.remove("theme-anim"); }, 450); }
-    root.dataset.theme = next;
-    try{ localStorage.setItem(THEME_KEY, next); }catch(e){}
-    var meta = document.querySelectorAll('meta[name="theme-color"]');
-    meta.forEach(function(m){ m.setAttribute("content", next === "dark" ? "#000000" : "#F3F4F6"); });
-    themeLabel();
-  });
-  if (sysDark && sysDark.addEventListener) sysDark.addEventListener("change", themeLabel);
-
-  function setLang(l, animate){
-    lang = l === "id" ? "id" : "en";
-    langBtn.dataset.lang = lang;   // the moon-fill on the switch starts right away
-    if (swapTimer){ clearTimeout(swapTimer); swapTimer = null; outAnims.forEach(function(a){ a.cancel(); }); outAnims = []; }
-    if (!animate || reduce || !document.body.animate){ applyLang(); return; }
-    var els = swipeTargets();
-    outAnims = els.map(function(el){
-      return el.animate(
-        [{opacity: 1, transform: "translateY(0)"}, {opacity: 0, transform: "translateY(-0.5em)"}],
-        {duration: SWIPE_OUT, easing: "cubic-bezier(.5,0,.75,0)", fill: "forwards"});
-    });
-    swapTimer = setTimeout(function(){
-      swapTimer = null;
-      applyLang();
-      outAnims.forEach(function(a){ a.cancel(); }); outAnims = [];
-      els.forEach(function(el, i){
-        el.animate(
-          [{opacity: 0, transform: "translateY(0.6em)"}, {opacity: 1, transform: "translateY(0)"}],
-          {duration: 380, delay: Math.min(i * 6, 120), easing: "cubic-bezier(.2,.8,.2,1)", fill: "backwards"});
-      });
-    }, SWIPE_OUT);
-  }
-
-  langBtn.addEventListener("click", function(){
-    var next = lang === "en" ? "id" : "en";
-    setLang(next, true);
-    try{ localStorage.setItem(LANG_KEY, next); }catch(e){}
-  });
-
-  var saved = null;
-  try{ saved = localStorage.getItem(LANG_KEY); }catch(e){}
-  if (!saved){
-    var nav = (navigator.language || "").toLowerCase();
-    saved = nav.indexOf("id") === 0 || nav.indexOf("ms") === 0 ? "id" : "en";
-  }
-  setLang(saved);
-  // Keep the EN/ID switch perfectly still: the "Start Day 1" button to its right gets a
-  // fixed width that fits both languages, so its label change can't push the switch.
-  function lockNavStart(){
-    var b = document.querySelector('[data-i18n="navStart"]');
-    var w = 0, keep = b.innerHTML;
-    b.style.minWidth = "";
-    ["en", "id"].forEach(function(l){
-      if (T[l].navStart == null) return;
-      b.innerHTML = T[l].navStart;
-      w = Math.max(w, b.getBoundingClientRect().width);
-    });
-    b.innerHTML = keep;
-    b.style.minWidth = Math.ceil(w) + "px";
-  }
-  lockNavStart();
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(lockNavStart);  // re-measure once the web font is in
-  // Turn on the switch animation only after the first paint, so it doesn't slide on load
-  requestAnimationFrame(function(){ requestAnimationFrame(function(){ langBtn.classList.add("ready"); }); });
-  openFor(location.hash);
-}
-</script>
-<script type="module">
-  // Phase 1 of the Rust migration: the reading-plan rules live in crates/tilawa-core (Rust),
-  // compiled to WebAssembly in pkg/ by `wasm-pack build`. This loads it and starts the page.
-  import init, { Tilawa } from "./pkg/tilawa_core.js";
-  function read(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
-  try{
-    await init();
-    startTilawa(Tilawa.restore(read("tilawa-pages-v1"), read("tilawa-progress-v1")));
-  }catch(err){
-    console.error("Tilawa: the Rust/WASM core failed to load. Serve the folder (node dev.js), don’t open the file directly.", err);
-  }
-</script>
+<!-- Loads the Rust/WebAssembly core, then starts every part of the page -->
+<script type="module" src="js/main.js"></script>
 </body>
 </html>
