@@ -9,3 +9,6 @@ skills-lock.json
 *.swp
 *~
 node_modules/
+
+# Rust build output (pkg/ is committed so the site works without building)
+target/

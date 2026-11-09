@@ -607,7 +607,8 @@
 <script src="lang/en.js"></script>
 <script src="lang/id.js"></script>
 <script>
-(function(){
+// Started by the module script at the bottom, once the Rust/WASM core has loaded.
+function startTilawa(core){
   // Saweria support link (button + QR widget at the bottom of the page)
   // Ganti dengan link profil Saweria kamu, mis. "https://saweria.co/namakamu".
   // Tombol dan QR code sama-sama memakai link ini.
@@ -629,70 +630,19 @@
     id: Object.assign({}, L.en || {}, L.id || {})  // missing Indonesian keys fall back to English
   };
 
-  // pg = Mushaf Madinah pages for that day, taken from quran.json (start page of each surah;
-  // a page shared by two surahs is counted on the day that starts it). Total: 604.
-  var DAYS = [
-    {s:["Al-Fatihah","Al-Baqarah"], r:[1,2], pg:[1,49], tag:"boss"},
-    {s:["Ali ‘Imran"], r:[3,3], pg:[50,76]},
-    {s:["An-Nisa’"], r:[4,4], pg:[77,105]},
-    {s:["Al-Ma’idah"], r:[5,5], pg:[106,127]},
-    {s:["Al-An’am"], r:[6,6], pg:[128,150]},
-    {s:["Al-A’raf"], r:[7,7], pg:[151,176]},
-    {s:["Al-Anfal","At-Taubah"], r:[8,9], pg:[177,207], tag:"pack"},
-    {s:["Yunus","Hud"], r:[10,11], pg:[208,234]},
-    {s:["Yusuf","Ar-Ra’d","Ibrahim"], r:[12,14], pg:[235,261]},
-    {s:["Al-Hijr","An-Nahl"], r:[15,16], pg:[262,281]},
-    {s:["Al-Isra’","Al-Kahf"], r:[17,18], pg:[282,304], tag:"pack"},
-    {s:["Maryam","Taha"], r:[19,20], pg:[305,321]},
-    {s:["Al-Anbiya’","Al-Hajj"], r:[21,22], pg:[322,341]},
-    {s:["Al-Mu’minun","An-Nur"], r:[23,24], pg:[342,358]},
-    {s:["Al-Furqan"], r:[25,25], pg:[359,366], tag:"half"},
-    {s:["Asy-Syu’ara’","An-Naml"], r:[26,27], pg:[367,384]},
-    {s:["Al-Qasas","Al-‘Ankabut"], r:[28,29], pg:[385,403]},
-    {s:["Ar-Rum","Luqman","As-Sajdah"], r:[30,32], pg:[404,417]},
-    {s:["Al-Ahzab","Saba’"], r:[33,34], pg:[418,433]},
-    {s:["Fatir","Yasin","As-Saffat"], r:[35,37], pg:[434,452]},
-    {s:["Sad","Az-Zumar"], r:[38,39], pg:[453,466]},
-    {s:["Gafir","Fussilat"], r:[40,41], pg:[467,482]},
-    {s:["Asy-Syura","Az-Zukhruf","Ad-Dukhan"], r:[42,44], pg:[483,498]},
-    {s:["Al-Jasiyah","Al-Ahqaf","Muhammad","Al-Fath"], r:[45,48], pg:[499,514]},
-    {s:["Al-Hujurat – An-Najm"], r:[49,53], pg:[515,527]},
-    {s:["Al-Qamar – Al-Hadid"], r:[54,57], pg:[528,541]},
-    {s:["Al-Mujadalah – At-Tahrim"], r:[58,66], pg:[542,561]},
-    {s:["Al-Mulk – Al-Mursalat"], r:[67,77], pg:[562,581]},
-    {s:["An-Naba’ – An-Nas"], r:[78,114], pg:[582,604], tag:"end"}
-  ];
+  // The 29 days (surahs, page ranges from quran.json) are built in Rust: crates/tilawa-core/src/lib.rs
+  var DAYS = JSON.parse(core.days_json());
   var KEY = "tilawa-progress-v1";
   var LANG_KEY = "tilawa-lang";
   var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
   var PAGES_KEY = "tilawa-pages-v1";
   function total(i){ return DAYS[i].pg[1] - DAYS[i].pg[0] + 1; }
-  // Pages read per day (index 0 = Day 1). Older saves that only stored finished days
-  // are converted: a finished day counts as all its pages read.
-  function load(){
-    var pages = DAYS.map(function(){ return 0; });
-    try{
-      var raw = localStorage.getItem(PAGES_KEY);
-      if (raw){
-        var arr = JSON.parse(raw);
-        if (Array.isArray(arr)) arr.forEach(function(v, i){
-          if (i < 29 && Number.isInteger(v)) pages[i] = Math.max(0, Math.min(total(i), v));
-        });
-      } else {
-        var old = JSON.parse(localStorage.getItem(KEY) || "[]");
-        if (Array.isArray(old)) for (var d = 1; d <= 29 && old.indexOf(d) > -1; d++) pages[d - 1] = total(d - 1);
-      }
-    }catch(e){}
-    // Days go in order: nothing counts after the first unfinished day
-    var open = false;
-    pages.forEach(function(v, i){ if (open) pages[i] = 0; else if (v < total(i)) open = true; });
-    return pages;
-  }
+  // Progress rules (order, limits, old-save conversion) live in Rust; `pages` is a read-only mirror for drawing.
   function save(){
     try{
-      localStorage.setItem(PAGES_KEY, JSON.stringify(pages));
-      localStorage.setItem(KEY, JSON.stringify(Array.from(done)));   // kept for older versions
+      localStorage.setItem(PAGES_KEY, core.to_json());
+      localStorage.setItem(KEY, core.finished_days_json());   // kept for older versions
     }catch(e){}
   }
 
@@ -750,7 +700,8 @@
     }).join("");
   }
 
-  var pages = load();
+  var pages = Array.from(core.pages());
+  function sync(){ pages = Array.from(core.pages()); }
   var done = new Set();
   var cheerText = {};   // the line currently shown on each unfinished card
   var countEl = document.getElementById("count");
@@ -797,9 +748,7 @@
       var st = card.querySelector(".day-status");
       if (st.textContent !== status) st.textContent = status;
       card.classList.toggle("has-status", !!status);
-      // minus works on the day in progress, or on the last finished day while the next one is untouched
-      var canMinus = (d === cur && v > 0) || (d === n && (cur > 29 || pages[cur - 1] === 0));
-      var canPlus = d === cur && v < tot;
+      var canMinus = core.can_remove(d), canPlus = core.can_add(d);   // decided in Rust
       card.querySelector('[data-step="-1"]').setAttribute("aria-disabled", canMinus ? "false" : "true");
       card.querySelector('[data-step="1"]').setAttribute("aria-disabled", canPlus ? "false" : "true");
       card.querySelector(".day-hit").setAttribute("aria-label",
@@ -853,25 +802,19 @@
     if (!card) return;
     var stepBtn = e.target.closest(".day-step");
     var step = stepBtn ? +stepBtn.dataset.step : 1;
-    var d = +card.dataset.day, i = d - 1;
-    var n = done.size, cur = n + 1;
-    if (d > cur) return warnSkip(cur);
-    if (step > 0){
-      if (d < cur) return;                          // already finished
-      if (pages[i] >= total(i)) return;
-      pages[i]++;
-      if (pages[i] >= total(i)){ delete cheerText[d]; card.classList.add("just-done"); setTimeout(function(){ card.classList.remove("just-done"); }, 1600); }
-      else cheerText[d] = cheer(d);
+    var d = +card.dataset.day;
+    var n = done.size;
+    var out = JSON.parse(step > 0 ? core.add_page(d) : core.remove_page(d));   // Rust decides
+    if (out.kind === "locked") return warnSkip(out.next);
+    if (out.kind === "undofromend") return hint(T[lang].undoLast.replace("{n}", out.last), out.last);
+    if (out.kind === "noop") return;
+    sync();
+    if (out.kind === "finished"){
+      delete cheerText[d];
+      card.classList.add("just-done");
+      setTimeout(function(){ card.classList.remove("just-done"); }, 1600);
     } else {
-      if (d === cur){
-        if (pages[i] === 0) return;
-        pages[i]--;
-      } else {
-        var lastWithPages = (cur <= 29 && pages[cur - 1] > 0) ? cur : n;
-        if (d !== lastWithPages) return hint(T[lang].undoLast.replace("{n}", lastWithPages), lastWithPages);
-        pages[i]--;
-        cheerText[d] = cheer(d);
-      }
+      cheerText[d] = cheer(d);
     }
     clearTimeout(hintTimer);
     save(); update();
@@ -891,7 +834,7 @@
   resetBtn.addEventListener("click", function(){
     if (resetBtn.classList.contains("armed")){
       disarm();
-      pages = DAYS.map(function(){ return 0; }); cheerText = {}; save(); update();
+      core.reset(); sync(); cheerText = {}; save(); update();
       return;
     }
     resetBtn.classList.add("armed");
@@ -1176,7 +1119,19 @@
   // Turn on the switch animation only after the first paint, so it doesn't slide on load
   requestAnimationFrame(function(){ requestAnimationFrame(function(){ langBtn.classList.add("ready"); }); });
   openFor(location.hash);
-})();
+}
+</script>
+<script type="module">
+  // Phase 1 of the Rust migration: the reading-plan rules live in crates/tilawa-core (Rust),
+  // compiled to WebAssembly in pkg/ by `wasm-pack build`. This loads it and starts the page.
+  import init, { Tilawa } from "./pkg/tilawa_core.js";
+  function read(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+  try{
+    await init();
+    startTilawa(Tilawa.restore(read("tilawa-pages-v1"), read("tilawa-progress-v1")));
+  }catch(err){
+    console.error("Tilawa: the Rust/WASM core failed to load. Serve the folder (node dev.js), don’t open the file directly.", err);
+  }
 </script>
 </body>
 </html>

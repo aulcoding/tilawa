@@ -21,6 +21,7 @@ const TYPES = {
   ".webp": "image/webp",
   ".ico": "image/x-icon",
   ".woff2": "font/woff2",
+  ".wasm": "application/wasm",   // Rust core (pkg/tilawa_core_bg.wasm)
 };
 
 // Snippet added to every HTML page: listens for "reload" and refreshes.

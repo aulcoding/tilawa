@@ -1,0 +1,10 @@
+# Cargo workspace for Tilawa. Phase 1 has one crate: the reading-plan logic.
+# Later phases add the Leptos app next to it under crates/.
+[workspace]
+resolver = "3"
+members = ["crates/tilawa-core"]
+
+[profile.release]
+opt-level = "s"     # smaller .wasm
+lto = true
+codegen-units = 1
