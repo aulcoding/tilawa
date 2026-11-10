@@ -44,17 +44,13 @@ export class ScheduleApp {
     [Symbol.dispose](): void;
     finished_count(): number;
     /**
-     * True when no page is recorded on any day (the reset button is disabled then).
+     * Renders the 29 cards into `grid` and the progress header into `head`,
+     * restoring saved progress from localStorage.
      */
-    is_empty(): boolean;
+    constructor(grid: HTMLElement, head: HTMLElement, texts_json: string, on_event: Function);
     /**
-     * Renders the 29 cards into `grid`, restoring saved progress from localStorage.
-     */
-    constructor(grid: HTMLElement, texts_json: string, on_event: Function);
-    pages_on(day: number): number;
-    reset(): void;
-    /**
-     * New language: every card label updates in place (no re-render, so moons keep their state).
+     * New language: every label updates in place (no re-render, so moons keep their state).
+     * The header gets a fresh line in the new language and the reset button disarms.
      */
     set_texts(texts_json: string): void;
 }
@@ -117,10 +113,7 @@ export interface InitOutput {
     readonly intounderlyingsource_cancel: (a: number) => void;
     readonly intounderlyingsource_pull: (a: number, b: any) => any;
     readonly scheduleapp_finished_count: (a: number) => number;
-    readonly scheduleapp_is_empty: (a: number) => number;
-    readonly scheduleapp_new: (a: any, b: number, c: number, d: any) => number;
-    readonly scheduleapp_pages_on: (a: number, b: number) => number;
-    readonly scheduleapp_reset: (a: number) => void;
+    readonly scheduleapp_new: (a: any, b: any, c: number, d: number, e: any) => number;
     readonly scheduleapp_set_texts: (a: number, b: number, c: number) => void;
     readonly tilawa_add_page: (a: number, b: number) => [number, number];
     readonly tilawa_can_add: (a: number, b: number) => number;
@@ -136,7 +129,8 @@ export interface InitOutput {
     readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___js_sys_af93aaf2a88d89c7___Function_fn_wasm_bindgen_57db2698c03e39ef___JsValue_____wasm_bindgen_57db2698c03e39ef___sys__Undefined___js_sys_af93aaf2a88d89c7___Function_fn_wasm_bindgen_57db2698c03e39ef___JsValue_____wasm_bindgen_57db2698c03e39ef___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
     readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue__core_23c8f662a870ef55___result__Result_____wasm_bindgen_57db2698c03e39ef___JsError___true_: (a: number, b: number, c: any) => [number, number];
     readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true_: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true__30: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true__27: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke_______true_: (a: number, b: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;

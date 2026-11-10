@@ -1,19 +1,16 @@
-// The 29-day schedule: progress header, carousel, and feedback bubbles.
+// The 29-day schedule: carousel and the "don't skip" bubble.
 //
-// Phase 2 of the Rust migration: the day cards themselves are a Leptos component
-// (crates/tilawa-app/src/card.rs). Rust renders them, handles taps and "−"/"+",
-// applies the rules (crates/tilawa-core), saves progress, and calls onEvent() here
-// after every tap. This file draws everything around the cards.
-import { t, reduce, onLang, swipeExtras, replay, pick } from "./state.js";
+// Phase 3 of the Rust migration: the day cards and the progress header above them
+// are Leptos components (crates/tilawa-app/src/card.rs, header.rs). Rust renders
+// them, handles taps, "−"/"+" and the two-tap reset, applies the rules
+// (crates/tilawa-core), saves progress, and calls onEvent() here afterwards.
+// This file moves the carousel and shows the bubble.
+import { t, reduce, onLang, swipeExtras, replay } from "./state.js";
 
 let app;              // ScheduleApp (Rust/WASM)
-let topLine = "";     // the line next to the big progress number
 
 const grid = document.getElementById("grid");
-const countEl = document.getElementById("count");
-const msgEl = document.getElementById("msg");
-const barEl = document.getElementById("bar");
-const resetBtn = document.getElementById("reset");
+const head = document.getElementById("progress-head");
 
 // ── Carousel (1 card per view on phones, 3 on tablet/desktop) ──
 const posEl = document.getElementById("carousel-pos");
@@ -68,36 +65,11 @@ function initCarousel() {
   });
 }
 
-// ── Progress header ──
-// The line changes only when a day is finished: warm lines while on Day 1, lightly sarcastic from Day 2 on.
-function rollTop() {
-  const n = app.finished_count();
-  if (n >= 29 || (n === 0 && app.pages_on(1) === 0)) { topLine = ""; return; }
-  topLine = pick(n === 0 ? t().progressDay1 : t().progress, topLine);
-}
-function message(n) {
-  const m = t().msg;
-  if (n === 0 && app.pages_on(1) === 0) return m[0];
-  if (n >= 29) return m[3];
-  return topLine || (n < 15 ? m[1] : m[2]);
-}
-function updateHeader() {
-  const n = app.finished_count();
-  countEl.textContent = n;
-  barEl.style.width = (n / 29) * 100 + "%";
-  msgEl.textContent = message(n);
-  resetBtn.disabled = app.is_empty();
-}
-
-// ── Feedback when a tap isn't allowed ──
-let hintTimer;
-/** "Undo from the end: Day N first." in the header, and flashes that day. */
-function hint(text, day) {
-  clearTimeout(hintTimer);
-  msgEl.textContent = text;
+// ── "Undo from the end" ──
+// Rust shows the hint text in the header; here we just point at that day.
+function pointAt(day) {
   const card = document.getElementById("day-" + day);
   if (card) { replay(card, "flash"); reveal(day); }
-  hintTimer = setTimeout(() => { msgEl.textContent = message(app.finished_count()); }, 2800);
 }
 
 let warnTimer;
@@ -122,15 +94,14 @@ function warnSkip(day) {
   }, 2600);
 }
 
-// ── What Rust tells us after every tap ──
-// ev = { kind: "added"|"finished"|"removed"|"noop"|"locked"|"undofromend", day, finished, firstDayPages, next?, last? }
-let lastFinished = 0;
+// ── What Rust tells us after every tap / reset ──
+// ev = { kind: "added"|"finished"|"removed"|"noop"|"locked"|"undofromend"|"reset", day, finished, firstDayPages, next?, last? }
 function onEvent(json) {
   const ev = JSON.parse(json);
   switch (ev.kind) {
     case "locked": return warnSkip(ev.next);
-    case "undofromend": return hint(t().undoLast.replace("{n}", ev.last), ev.last);
-    case "noop": return;
+    case "undofromend": return pointAt(ev.last);
+    case "reset": return goTo(1);
     case "finished": {
       const card = document.getElementById("day-" + ev.day);
       card.classList.add("just-done");
@@ -138,32 +109,6 @@ function onEvent(json) {
       if (ev.day < 29) setTimeout(() => reveal(ev.day + 1), 900);   // after the moon fills, slide to the next day
     }
   }
-  clearTimeout(hintTimer);
-  if (ev.finished !== lastFinished || !topLine) rollTop();   // the header line changes only when a day is (un)finished
-  lastFinished = ev.finished;
-  updateHeader();
-}
-
-// ── Two-tap reset, no dialog needed ──
-let armTimer;
-function disarm() {
-  clearTimeout(armTimer);
-  resetBtn.classList.remove("armed");
-  resetBtn.textContent = t().reset;
-}
-function onReset() {
-  if (resetBtn.classList.contains("armed")) {
-    disarm();
-    app.reset();
-    lastFinished = 0;
-    rollTop();
-    updateHeader();
-    goTo(1);
-    return;
-  }
-  resetBtn.classList.add("armed");
-  resetBtn.textContent = t().resetArmed;
-  armTimer = setTimeout(disarm, 3000);
 }
 
 // ── Links to a specific day ("Day 9", "Start Day 1") ──
@@ -181,26 +126,21 @@ function onJump(e) {
 
 /** `ScheduleApp` is the class exported by the Rust crate (pkg/tilawa_app.js). */
 export function initSchedule(ScheduleApp) {
-  // Rust renders the 29 cards into #grid right away (in the default language;
+  // Rust renders the 29 cards into #grid and the header into #progress-head right away (in the default language;
   // the language hook below sends the real one).
-  app = new ScheduleApp(grid, JSON.stringify(t()), onEvent);
-  lastFinished = app.finished_count();
+  app = new ScheduleApp(grid, head, JSON.stringify(t()), onEvent);
 
   initCarousel();
-  resetBtn.addEventListener("click", onReset);
   document.addEventListener("click", onJump);
-  swipeExtras.push(grid, msgEl, resetBtn);
+  swipeExtras.push(grid, document.getElementById("msg"), document.getElementById("reset"));
 
   let first = true;
   onLang(() => {
-    app.set_texts(JSON.stringify(t()));   // cards update their labels in place
-    disarm();
+    app.set_texts(JSON.stringify(t()));   // cards + header update their labels in place
     grid.setAttribute("aria-label", t().schedH);
     prevBtn.setAttribute("aria-label", t().carouselPrev);
     nextBtn.setAttribute("aria-label", t().carouselNext);
     if (first) { first = false; goTo(app.finished_count() + 1, false); }   // open on the day you're reading
-    rollTop();
-    updateHeader();
     updateNav();
   });
 }

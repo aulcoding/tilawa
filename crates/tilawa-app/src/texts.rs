@@ -19,6 +19,13 @@ pub struct Texts {
     pub done_days: Vec<String>,
     pub cheer: Vec<String>,
     pub tags: HashMap<String, String>,
+    // Progress header
+    pub msg: Vec<String>,
+    pub progress_day1: Vec<String>,
+    pub progress: Vec<String>,
+    pub reset: String,
+    pub reset_armed: String,
+    pub undo_last: String,
 }
 
 impl Texts {
@@ -38,6 +45,14 @@ mod tests {
         assert_eq!(t.pages_unit, "hal");
         assert_eq!(t.done_days.len(), 2);
         assert_eq!(t.tags["boss"], "Big match");
+    }
+
+    #[test]
+    fn reads_the_header_keys() {
+        let t = Texts::from_json(r#"{"progressDay1":["x"],"resetArmed":"sure?","undoLast":"Day {n} first"}"#);
+        assert_eq!(t.progress_day1, ["x"]);
+        assert_eq!(t.reset_armed, "sure?");
+        assert_eq!(t.undo_last, "Day {n} first");
     }
 
     #[test]

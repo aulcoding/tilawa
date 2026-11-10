@@ -40,6 +40,9 @@ Moving to Rust step by step.
 - [x] **Phase 1** – plan + progress rules in Rust (`tilawa-core`), called from the existing JS through WebAssembly
 - [x] **Phase 2** – schedule cards rendered with Leptos (`tilawa-app`); JS keeps the header, carousel and bubbles
 - [ ] **Phase 3** – progress header, language, theme in Leptos; text as JSON
+  - [x] progress header (count, line, bar, two-tap reset) in `header.rs`
+  - [ ] language switch + `data-i18n` text
+  - [ ] theme switch
 - [ ] **Phase 4** – full Leptos CSR app built with `trunk`; old JS removed
 - [ ] Phase 5 (optional) – Rust API on Vercel, only if a feature needs a server
 
