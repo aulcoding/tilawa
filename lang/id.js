@@ -50,12 +50,16 @@ window.TILAWA_LANG.id = {
     "Nggak ada cerita yang lupa halaman. Tiap hari selesai di akhir surah, feelnya bakal beda.",
   r1h: "Hari pertama. Big match.",
   r1p: "Al-Fatihah plus Al-Baqarah full. Sengaja ditaruh di depan. Uji mental.",
+  r1s: "Hari 1 · 49 hal",   // angka kecil di bawah kartu
   r2h: "Paket hemat.",
   r2p: "Al-Anfal &amp; At-Taubah di Hari 7, Al-Isra’ &amp; Al-Kahf di Hari 11. Mereka itu bestie. Jangan dipisah.",
+  r2s: "Hari 7 &amp; 11",
   r3h: "Hari 15: Al-Furqan.",
   r3p: "Artinya pembeda. Purnama.",
+  r3s: "Hari 15 · 8 hal",
   r4h: "Hari 16–29 makin ringan.",
   r4p: "Sekitar 17 halaman sehari. Waktunya setara satu scrolling tiktok.",
+  r4s: "±17 hal / hari",
 
   // Bagian jadwal
   schedH: "Jadwal 29 hari",

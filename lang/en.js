@@ -50,12 +50,16 @@ window.TILAWA_LANG.en = {
     "No more forgetting which page you stopped on. Every day ends at the end of a surah, and it just feels different.",
   r1h: "Day one. Big match.",
   r1p: "Al-Fatihah plus all of Al-Baqarah. Front-loaded on purpose. A test of nerve.",
+  r1s: "Day 1 · 49 pages",   // small key number at the bottom of the card
   r2h: "Combo deal.",
   r2p: "Al-Anfal &amp; At-Taubah on Day 7, Al-Isra’ &amp; Al-Kahf on Day 11. They’re besties. Don’t split them up.",
+  r2s: "Days 7 &amp; 11",
   r3h: "Day 15: Al-Furqan.",
   r3p: "It means the Criterion. Full moon.",
+  r3s: "Day 15 · 8 pages",
   r4h: "Days 16–29 get lighter.",
   r4p: "About 17 pages a day. Takes about as long as one TikTok scrolling session.",
+  r4s: "±17 pages / day",
 
   // Schedule section
   schedH: "29 days. Cry your eyes out and read.",

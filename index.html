@@ -118,23 +118,56 @@
         <div class="wrap">
           <h2 class="max-w-[16ch] text-h2 font-light tracking-title" data-i18n="planH"></h2>
           <p class="mt-6 max-w-[56ch] text-lede text-muted" data-i18n="planLede"></p>
-          <div class="mt-[clamp(40px,6vw,72px)] border-t border-line">
-            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
-              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r1h"></h3>
-              <p class="max-w-[56ch] text-muted" data-i18n="r1p"></p>
-            </div>
-            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
-              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r2h"></h3>
-              <p class="max-w-[56ch] text-muted" data-i18n="r2p"></p>
-            </div>
-            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
-              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r3h"></h3>
-              <p class="max-w-[56ch] text-muted" data-i18n="r3p"></p>
-            </div>
-            <div class="grid grid-cols-[minmax(0,5fr)_minmax(0,7fr)] gap-x-[clamp(24px,5vw,80px)] gap-y-2.5 border-b border-line py-7 max-xl:grid-cols-1">
-              <h3 class="text-h3 font-normal tracking-snug" data-i18n="r4h"></h3>
-              <p class="max-w-[56ch] text-muted" data-i18n="r4p"></p>
-            </div>
+          <!-- Rules as 4 cards: number, icon, one-line title, short note, key number -->
+          <div class="mt-[clamp(40px,6vw,72px)] grid grid-cols-4 gap-3 max-xl:grid-cols-2 max-md:grid-cols-1">
+            <article class="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 transition-colors duration-200 hover:border-line-strong">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-[13px] tracking-[.08em] text-muted">01</span>
+                <span class="grid size-11 place-items-center rounded-full border border-line-strong text-fg">
+                  <!-- swords (Lucide) -->
+                  <svg class="size-[22px] fill-none stroke-current stroke-[1.5] [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" aria-hidden="true"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" x2="19" y1="19" y2="13"/><line x1="16" x2="20" y1="16" y2="20"/><line x1="19" x2="21" y1="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/><line x1="5" x2="9" y1="14" y2="18"/><line x1="7" x2="4" y1="17" y2="20"/><line x1="3" x2="5" y1="19" y2="21"/></svg>
+                </span>
+              </div>
+              <h3 class="text-[21px] leading-[1.25] font-normal tracking-snug" data-i18n="r1h"></h3>
+              <p class="text-[15px] leading-[1.55] text-muted" data-i18n="r1p"></p>
+              <span class="mt-auto self-start rounded-full border border-line-strong px-2.5 py-1 text-[12.5px] tabular-nums" data-i18n="r1s"></span>
+            </article>
+            <article class="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 transition-colors duration-200 hover:border-line-strong">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-[13px] tracking-[.08em] text-muted">02</span>
+                <span class="grid size-11 place-items-center rounded-full border border-line-strong text-fg">
+                  <!-- link-2 (Lucide) -->
+                  <svg class="size-[22px] fill-none stroke-current stroke-[1.5] [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 17H7A5 5 0 0 1 7 7h2"/><path d="M15 7h2a5 5 0 1 1 0 10h-2"/><line x1="8" x2="16" y1="12" y2="12"/></svg>
+                </span>
+              </div>
+              <h3 class="text-[21px] leading-[1.25] font-normal tracking-snug" data-i18n="r2h"></h3>
+              <p class="text-[15px] leading-[1.55] text-muted" data-i18n="r2p"></p>
+              <span class="mt-auto self-start rounded-full border border-line-strong px-2.5 py-1 text-[12.5px] tabular-nums" data-i18n="r2s"></span>
+            </article>
+            <article class="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 transition-colors duration-200 hover:border-line-strong">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-[13px] tracking-[.08em] text-muted">03</span>
+                <span class="grid size-11 place-items-center rounded-full border border-line-strong text-fg">
+                  <!-- full moon -->
+                  <svg class="size-[22px] fill-none stroke-current stroke-[1.5] [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" aria-hidden="true"><circle class="fill-current stroke-none" cx="12" cy="12" r="9"/></svg>
+                </span>
+              </div>
+              <h3 class="text-[21px] leading-[1.25] font-normal tracking-snug" data-i18n="r3h"></h3>
+              <p class="text-[15px] leading-[1.55] text-muted" data-i18n="r3p"></p>
+              <span class="mt-auto self-start rounded-full border border-line-strong px-2.5 py-1 text-[12.5px] tabular-nums" data-i18n="r3s"></span>
+            </article>
+            <article class="flex flex-col gap-4 rounded-card border border-line bg-surface p-6 transition-colors duration-200 hover:border-line-strong">
+              <div class="flex items-center justify-between">
+                <span class="font-mono text-[13px] tracking-[.08em] text-muted">04</span>
+                <span class="grid size-11 place-items-center rounded-full border border-line-strong text-fg">
+                  <!-- trending-down (Lucide) -->
+                  <svg class="size-[22px] fill-none stroke-current stroke-[1.5] [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 17h6v-6"/><path d="m22 17-8.5-8.5-5 5L2 7"/></svg>
+                </span>
+              </div>
+              <h3 class="text-[21px] leading-[1.25] font-normal tracking-snug" data-i18n="r4h"></h3>
+              <p class="text-[15px] leading-[1.55] text-muted" data-i18n="r4p"></p>
+              <span class="mt-auto self-start rounded-full border border-line-strong px-2.5 py-1 text-[12.5px] tabular-nums" data-i18n="r4s"></span>
+            </article>
           </div>
         </div>
       </section>
