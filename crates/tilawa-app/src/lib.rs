@@ -1,41 +1,45 @@
-//! Tilawa UI in Leptos.
+//! Tilawa UI in Rust: Leptos for the parts that change a lot, web-sys for the rest.
 //!
-//! Phase 3 of the Rust migration: the 29 schedule cards and the progress header
-//! are Leptos components, and Rust owns the page language (all text lives in
-//! lang/*.jsonc) and the light/dark switch. The page's JavaScript still owns the
-//! carousel, the "don't skip" bubble, the hero and the extras. It creates an
-//! [`App`], hooks in, then calls `start()`:
+//! Phase 4 of the Rust migration: everything that moves on the page is Rust.
+//! index.html is the markup; the only JavaScript left is js/boot.js (applies the saved
+//! theme before the first paint) and js/main.js (fetches lang/*.jsonc and calls [`start`]).
 //!
-//! ```js
-//! import init, { App } from "./pkg/tilawa_app.js";
-//! await init();
-//! const app = new App(gridEl, headEl, enJsonc, idJsonc,
-//!   (json) => { /* after every tap: {"kind":"finished","day":4,"finished":4,…} */ },
-//!   (lang) => { /* the language changed: refresh your own labels */ });
-//! const text = JSON.parse(app.texts_json("id"));
-//! app.start();
-//! ```
+//! | module        | what                                                        |
+//! |---------------|-------------------------------------------------------------|
+//! | `card`        | the 29 day cards (Leptos)                                   |
+//! | `header`      | progress count, line, bar, two-tap reset (Leptos)           |
+//! | `carousel`    | carousel, "don't skip" bubble, links to a day               |
+//! | `page`        | EN/ID switch, all [data-i18n] text, swipe animation         |
+//! | `i18n`        | lang/*.jsonc parser + catalog                               |
+//! | `theme`       | light/dark switch                                           |
+//! | `hero`        | tappable moon, breathe in/out, "I'll start tomorrow"        |
+//! | `extras`      | accordion, copy link, Saweria button + QR                   |
+//! | `dom`         | small web-sys helpers                                       |
+//! | `storage`     | saved progress                                              |
 
 mod card;
+mod carousel;
+mod dom;
+mod extras;
 mod header;
+mod hero;
 pub mod i18n;
 mod page;
 mod storage;
 mod texts;
 mod theme;
 
-use std::time::Duration;
-
 use leptos::prelude::*;
-use serde_json::json;
 use tilawa_core::{build_days, Outcome, Progress};
 use wasm_bindgen::prelude::*;
 
+use dom::Timer;
+
 pub use texts::Texts;
 
-/// How long "Undo from the end: Day N first." stays in the header
+/// How long "Undo from the end: Day N first." stays in the header (ms)
 const HINT_MS: u64 = 2800;
-/// How long the reset button waits for the second tap
+/// How long the reset button waits for the second tap (ms)
 const ARM_MS: u64 = 3000;
 
 /// Everything the UI reacts to. Signals are `Copy`, so this is passed around by value.
@@ -43,7 +47,7 @@ const ARM_MS: u64 = 3000;
 pub struct State {
     /// Pages read per day + the rules (from tilawa-core)
     pub progress: RwSignal<Progress>,
-    /// Text for the current language (sent from lang/*.js)
+    /// Text for the current language (from lang/*.jsonc)
     pub texts: RwSignal<Texts>,
     /// The encouraging line shown on each unfinished card: (day, line)
     pub cheer: RwSignal<Vec<(u8, String)>>,
@@ -57,10 +61,10 @@ pub struct State {
     pub hint: RwSignal<Option<String>>,
     /// Reset button waiting for its second tap
     pub armed: RwSignal<bool>,
-    /// Bumped on every new hint / arm, so an older timer knows it is stale
-    pub timers: StoredValue<(u32, u32)>,
-    /// Tells the page's JavaScript what happened
-    pub notify: StoredValue<js_sys::Function, LocalStorage>,
+    hint_timer: Timer,
+    arm_timer: Timer,
+    /// Hides the "don't skip" bubble
+    warn_timer: Timer,
 }
 
 /// A random line from `lines`, never `avoid` (unless it is the only one).
@@ -77,7 +81,7 @@ fn pick(lines: &[String], avoid: Option<&str>) -> String {
 }
 
 impl State {
-    /// Applies a tap (`step` = +1 or −1) on `day`, saves, updates the lines, tells JS.
+    /// Applies a tap (`step` = +1 or −1) on `day`, saves, updates the lines and the carousel.
     pub fn tap(self, day: u8, step: i8) {
         let mut outcome = Outcome::Noop;
         self.progress.update(|p| {
@@ -108,7 +112,7 @@ impl State {
                 self.roll_top();
             }
         }
-        self.emit(outcome, day);
+        carousel::after_tap(self, outcome, day, self.warn_timer);
     }
 
     /// A cheer line for `day` (`{left}` = pages left), never the one already on the card.
@@ -144,135 +148,72 @@ impl State {
 
     fn show_hint(self, text: String) {
         self.hint.set(Some(text));
-        let id = self.bump_timer(true);
-        set_timeout(move || {
-            if self.timers.get_value().0 == id {
-                self.hint.set(None);
-            }
-        }, Duration::from_millis(HINT_MS));
+        self.hint_timer.start(HINT_MS, move || self.hint.set(None));
     }
 
     /// First tap arms the button, the second (within 3 s) clears all 29 days.
     pub fn press_reset(self) {
         if !self.armed.get_untracked() {
             self.armed.set(true);
-            let id = self.bump_timer(false);
-            set_timeout(move || {
-                if self.timers.get_value().1 == id {
-                    self.armed.set(false);
-                }
-            }, Duration::from_millis(ARM_MS));
+            self.arm_timer.start(ARM_MS, move || self.armed.set(false));
             return;
         }
+        self.arm_timer.cancel();
         self.armed.set(false);
         self.hint.set(None);
         self.progress.update(|p| p.reset());
         self.cheer.set(Vec::new());
         self.progress.with_untracked(storage::save);
         self.roll_top();
-        self.send(json!({ "kind": "reset", "finished": 0, "firstDayPages": 0 }));
-    }
-
-    /// Bumps the hint (`true`) or arm timer id and returns the new id.
-    fn bump_timer(self, hint: bool) -> u32 {
-        let mut id = 0;
-        self.timers.update_value(|(h, a)| {
-            let t = if hint { h } else { a };
-            *t += 1;
-            id = *t;
-        });
-        id
-    }
-
-    /// Sends {"kind": …, "day": …, "finished": …, "firstDayPages": …, plus next/last} to JS.
-    fn emit(self, outcome: Outcome, day: u8) {
-        let (finished, first) = self.progress.with_untracked(|p| (p.finished_count(), p.pages_on(1)));
-        let mut event = serde_json::to_value(outcome).expect("outcome serialises");
-        event["day"] = json!(day);
-        event["finished"] = json!(finished);
-        event["firstDayPages"] = json!(first);
-        self.send(event);
-    }
-
-    fn send(self, event: serde_json::Value) {
-        let text = JsValue::from_str(&event.to_string());
-        self.notify.with_value(|f| {
-            let _ = f.call1(&JsValue::NULL, &text);
-        });
+        carousel::go_to(self, 1, true);
     }
 }
 
-/// The handle the page's JavaScript holds.
+/// Starts the page. `en` / `id` are the contents of lang/en.jsonc and lang/id.jsonc.
+///
+/// ```js
+/// import init, { start } from "./pkg/tilawa_app.js";
+/// await init();
+/// start(enJsonc, idJsonc);
+/// ```
 #[wasm_bindgen]
-pub struct App {
-    page: page::Page,
-}
+pub fn start(en: &str, id: &str) {
+    let catalog = i18n::Catalog::parse(en, id);
+    for e in &catalog.errors {
+        web_sys::console::error_1(&JsValue::from_str(&format!("Tilawa text: {e}")));
+    }
+    let lang = page::starting_lang();
 
-#[wasm_bindgen]
-impl App {
-    /// Renders the 29 cards into `grid` and the progress header into `head`, restoring
-    /// saved progress. `en`/`id` are the contents of lang/en.jsonc and lang/id.jsonc.
-    #[wasm_bindgen(constructor)]
-    pub fn new(
-        grid: web_sys::HtmlElement,
-        head: web_sys::HtmlElement,
-        en: &str,
-        id: &str,
-        on_event: js_sys::Function,
-        on_lang: js_sys::Function,
-    ) -> App {
-        let catalog = i18n::Catalog::parse(en, id);
-        for e in &catalog.errors {
-            web_sys::console::error_1(&JsValue::from_str(&format!("Tilawa text: {e}")));
-        }
-        let lang = page::starting_lang();
+    let (saved_pages, old_done) = storage::load();
+    let progress = Progress::restore(build_days(), saved_pages.as_deref(), old_done.as_deref());
 
-        let (saved_pages, old_done) = storage::load();
-        let progress = Progress::restore(build_days(), saved_pages.as_deref(), old_done.as_deref());
+    let state = State {
+        progress: RwSignal::new(progress),
+        texts: RwSignal::new(catalog.texts(lang)),
+        cheer: RwSignal::new(Vec::new()),
+        tap_count: RwSignal::new(0),
+        top_line: RwSignal::new(String::new()),
+        top_for: StoredValue::new(0),
+        hint: RwSignal::new(None),
+        armed: RwSignal::new(false),
+        hint_timer: Timer::new(),
+        arm_timer: Timer::new(),
+        warn_timer: Timer::new(),
+    };
 
-        let state = State {
-            progress: RwSignal::new(progress),
-            texts: RwSignal::new(catalog.texts(lang)),
-            cheer: RwSignal::new(Vec::new()),
-            tap_count: RwSignal::new(0),
-            top_line: RwSignal::new(String::new()),
-            top_for: StoredValue::new(0),
-            hint: RwSignal::new(None),
-            armed: RwSignal::new(false),
-            timers: StoredValue::new((0, 0)),
-            notify: StoredValue::new_local(on_event),
-        };
-
+    if let Some(head) = dom::html("progress-head") {
         leptos::mount::mount_to(head, move || view! { <header::ProgressHead state=state/> }).forget();
-
+    }
+    if let Some(grid) = dom::html("grid") {
         let days = build_days();
-        let cards = leptos::mount::mount_to(grid, move || {
+        leptos::mount::mount_to(grid, move || {
             days.into_iter()
                 .enumerate()
                 .map(|(i, day)| view! { <card::DayCard n={i as u8 + 1} day=day state=state/> })
                 .collect_view()
-        });
-        cards.forget(); // both live as long as the page
-
-        App { page: page::Page::new(state, catalog, lang, on_lang) }
+        })
+        .forget(); // the views live as long as the page
     }
 
-    /// Fills every [data-i18n] element, wires the EN/ID and light/dark switches. Runs the language hook once.
-    pub fn start(&self) {
-        self.page.start();
-    }
-
-    /// All text for "en" or "id" as plain JSON (Indonesian already filled in from English).
-    pub fn texts_json(&self, lang: &str) -> String {
-        self.page.catalog.with_value(|c| c.json(i18n::Lang::from_code(lang)))
-    }
-
-    /// The current language: "en" or "id".
-    pub fn lang(&self) -> String {
-        self.page.lang.get_value().code().to_string()
-    }
-
-    pub fn finished_count(&self) -> u8 {
-        self.page.state.progress.with_untracked(|p| p.finished_count())
-    }
+    page::Page::new(state, catalog, lang).start();
 }

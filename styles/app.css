@@ -264,8 +264,7 @@
 
   /* Saweria QR (the library injects a canvas + img) */
   .qr-card #saweria-qr,
-  .qr-card #saweria-qr canvas,
-  .qr-card #saweria-qr img { display: block; width: 100% !important; height: auto !important; image-rendering: pixelated; }
+  .qr-card #saweria-qr svg { display: block; width: 100% !important; height: auto !important; image-rendering: pixelated; }
 
   /* Load-in moment, then the hero moon breathes and glides */
   @media (prefers-reduced-motion: no-preference) {

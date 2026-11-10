@@ -3,14 +3,18 @@
 //! the choice, and keeps the "Start Day 1" button wide enough for both languages.
 //!
 //! Elements marked `data-swipe` (the cards, the header line…) slide with the text.
+//!
+//! `Page::start` also starts every other part of the page (theme, hero, carousel, extras),
+//! and `apply` refreshes their labels when the language changes.
 
 use std::time::Duration;
 
 use leptos::prelude::*;
 use wasm_bindgen::{JsCast, prelude::*};
-use web_sys::{Animation, Element, HtmlElement};
+use web_sys::{Animation, Element};
 
-use crate::{State, theme};
+use crate::dom::{all, by_id, document, html, local_storage, on, reduce_motion, window};
+use crate::{State, carousel, extras, hero, theme};
 use crate::i18n::{Catalog, Lang};
 
 const LANG_KEY: &str = "tilawa-lang";
@@ -21,35 +25,8 @@ pub struct Page {
     pub state: State,
     pub catalog: StoredValue<Catalog>,
     pub lang: StoredValue<Lang>,
-    /// Tells the page's JavaScript the language changed (so it refreshes its own labels)
-    on_lang: StoredValue<js_sys::Function, LocalStorage>,
     /// The running "slide out" animations, and an id so a late timer knows it is stale
     swipe: StoredValue<(u32, Vec<Animation>), LocalStorage>,
-}
-
-pub(crate) fn document() -> web_sys::Document {
-    web_sys::window().and_then(|w| w.document()).expect("a page")
-}
-
-pub(crate) fn by_id(id: &str) -> Option<Element> {
-    document().get_element_by_id(id)
-}
-
-fn all(selector: &str) -> Vec<Element> {
-    let Ok(list) = document().query_selector_all(selector) else { return Vec::new() };
-    (0..list.length())
-        .filter_map(|i| list.item(i)?.dyn_into::<Element>().ok())
-        .collect()
-}
-
-pub(crate) fn reduce_motion() -> bool {
-    web_sys::window()
-        .and_then(|w| w.match_media("(prefers-reduced-motion: reduce)").ok().flatten())
-        .is_some_and(|m| m.matches())
-}
-
-pub(crate) fn local_storage() -> Option<web_sys::Storage> {
-    web_sys::window()?.local_storage().ok()?
 }
 
 /// Saved choice, else the browser language.
@@ -57,7 +34,7 @@ pub fn starting_lang() -> Lang {
     if let Some(saved) = local_storage().and_then(|s| s.get_item(LANG_KEY).ok().flatten()) {
         return Lang::from_code(&saved);
     }
-    let browser = web_sys::window().and_then(|w| w.navigator().language()).unwrap_or_default();
+    let browser = window().navigator().language().unwrap_or_default();
     Lang::from_browser(&browser)
 }
 
@@ -77,33 +54,39 @@ fn slide(el: &Element, frames: &js_sys::Object, ms: f64, delay: f64, easing: &st
 }
 
 impl Page {
-    pub fn new(state: State, catalog: Catalog, lang: Lang, on_lang: js_sys::Function) -> Page {
+    pub fn new(state: State, catalog: Catalog, lang: Lang) -> Page {
         Page {
             state,
             catalog: StoredValue::new(catalog),
             lang: StoredValue::new(lang),
-            on_lang: StoredValue::new_local(on_lang),
             swipe: StoredValue::new_local((0, Vec::new())),
         }
     }
 
-    /// Fills the text, wires the EN/ID button. Called once the page's JS is ready for its hooks.
+    /// Starts every part of the page, then fills the text in the starting language.
     pub fn start(self) {
+        let state = self.state;
+        theme::start(state);
+        hero::start(state);
+        extras::start(state);
+        carousel::start(state);
         self.set_lang(self.lang.get_value(), false);
 
         if let Some(btn) = by_id("lang") {
-            let click = Closure::<dyn Fn()>::new(move || {
+            on(&btn, "click", move |_| {
                 let next = self.lang.get_value().other();
                 self.set_lang(next, true);
                 if let Some(s) = local_storage() {
                     let _ = s.set_item(LANG_KEY, next.code());
                 }
             });
-            let _ = btn.add_event_listener_with_callback("click", click.as_ref().unchecked_ref());
-            click.forget(); // lives as long as the page
         }
 
-        theme::start(self);
+        // Open on the day you're reading, and on the section a link like …/#plan points at
+        let finished = state.progress.with_untracked(|p| p.finished_count());
+        carousel::go_to(state, finished as i32 + 1, false);
+        extras::open_for(state, &window().location().hash().unwrap_or_default());
+
         self.lock_nav_start();
         // Measure again once the web font is in (it changes the width)
         if let Ok(ready) = document().fonts().ready() {
@@ -195,18 +178,17 @@ impl Page {
         });
         self.state.armed.set(false);
         self.state.roll_top();
-        theme::label(self);
-
-        let code = JsValue::from_str(lang.code());
-        self.on_lang.with_value(|f| {
-            let _ = f.call1(&JsValue::NULL, &code);
-        });
+        // Labels the other parts set themselves (aria-labels, "Days 1–3 of 29"…)
+        theme::label(self.state);
+        hero::label(self.state);
+        extras::label(self.state);
+        carousel::label(self.state);
     }
 
     /// Keeps the EN/ID switch perfectly still: the "Start Day 1" button next to it gets a
     /// fixed width that fits both languages, so its label change can't push the switch.
     fn lock_nav_start(self) {
-        let Some(b) = by_id("nav-start").and_then(|e| e.dyn_into::<HtmlElement>().ok()) else { return };
+        let Some(b) = html("nav-start") else { return };
         let keep = b.inner_html();
         let style = b.style();
         let _ = style.set_property("min-width", "");

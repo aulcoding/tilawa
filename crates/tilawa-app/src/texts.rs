@@ -1,10 +1,11 @@
-//! The card text for the current language, sent from lang/*.js as JSON.
+//! The text Rust uses directly, for the current language (from lang/*.jsonc).
 
 use std::collections::HashMap;
 
 use serde::Deserialize;
 
-/// Only the keys the cards use. Missing keys fall back to empty / defaults.
+/// The keys the Rust code reads. Missing keys fall back to empty / defaults.
+/// (Plain `data-i18n` text in the HTML is filled straight from the catalog, see page.rs.)
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Texts {
@@ -26,6 +27,24 @@ pub struct Texts {
     pub reset: String,
     pub reset_armed: String,
     pub undo_last: String,
+    // Carousel + "don't skip" bubble
+    pub sched_h: String,
+    pub carousel_one: String,
+    pub carousel_many: String,
+    pub carousel_prev: String,
+    pub carousel_next: String,
+    pub skip_warn: String,
+    // Hero, accordion, share
+    pub moon_label: String,
+    pub later: String,
+    pub more_open: String,
+    pub more_close: String,
+    pub share_cta: String,
+    pub share_done: String,
+    pub share_fail: String,
+    // Light/dark button
+    pub theme_to_dark: String,
+    pub theme_to_light: String,
 }
 
 impl Texts {

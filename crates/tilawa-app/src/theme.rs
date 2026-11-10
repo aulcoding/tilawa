@@ -1,12 +1,11 @@
 //! Light / dark: follows the device until the viewer picks one; the pick is remembered.
 //! (js/boot.js applies the saved pick before the page paints, long before this WASM loads.)
 
-use std::time::Duration;
-
 use leptos::prelude::*;
-use wasm_bindgen::{JsCast, prelude::*};
+use wasm_bindgen::JsCast;
 
-use crate::page::{Page, by_id, document, local_storage, reduce_motion};
+use crate::State;
+use crate::dom::{Timer, by_id, document, local_storage, on, reduce_motion};
 
 const THEME_KEY: &str = "tilawa-theme";
 /// Length of the colour cross-fade (`html.theme-anim` in styles/app.css)
@@ -58,34 +57,28 @@ fn current() -> Theme {
 }
 
 /// "Switch to dark mode" / "Switch to light mode", in the current language.
-pub fn label(page: Page) {
+pub fn label(state: State) {
     let Some(btn) = by_id("theme") else { return };
-    let key = if current() == Theme::Dark { "themeToLight" } else { "themeToDark" };
-    let lang = page.lang.get_value();
-    if let Some(text) = page.catalog.with_value(|c| c.text(lang, key).map(str::to_string)) {
-        let _ = btn.set_attribute("aria-label", &text);
-        let _ = btn.set_attribute("title", &text);
-    }
+    let dark = current() == Theme::Dark;
+    let text = state.texts.with_untracked(|t| if dark { t.theme_to_light.clone() } else { t.theme_to_dark.clone() });
+    let _ = btn.set_attribute("aria-label", &text);
+    let _ = btn.set_attribute("title", &text);
 }
 
-pub fn start(page: Page) {
+pub fn start(state: State) {
     let Some(btn) = by_id("theme") else { return };
-    let fade = StoredValue::new(0u32); // bumped per click, so an older timer knows it is stale
+    let fade = Timer::new();
 
-    let click = Closure::<dyn Fn()>::new(move || {
+    on(&btn, "click", move |_| {
         let Some(root) = document().document_element() else { return };
         let next = current().other();
         if !reduce_motion() {
             let _ = root.class_list().add_1("theme-anim"); // brief colour cross-fade
-            fade.update_value(|n| *n += 1);
-            let id = fade.get_value();
-            set_timeout(move || {
-                if fade.get_value() == id
-                    && let Some(root) = document().document_element()
-                {
+            fade.start(FADE_MS, || {
+                if let Some(root) = document().document_element() {
                     let _ = root.class_list().remove_1("theme-anim");
                 }
-            }, Duration::from_millis(FADE_MS));
+            });
         }
         let _ = root.set_attribute("data-theme", next.code());
         if let Some(s) = local_storage() {
@@ -98,15 +91,11 @@ pub fn start(page: Page) {
                 }
             }
         }
-        label(page);
+        label(state);
     });
-    let _ = btn.add_event_listener_with_callback("click", click.as_ref().unchecked_ref());
-    click.forget(); // lives as long as the page
 
     // The device switched light/dark (and the viewer never picked): the label follows
     if let Some(m) = system_dark() {
-        let changed = Closure::<dyn Fn()>::new(move || label(page));
-        let _ = m.add_event_listener_with_callback("change", changed.as_ref().unchecked_ref());
-        changed.forget();
+        on(&m, "change", move |_| label(state));
     }
 }

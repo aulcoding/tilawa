@@ -174,7 +174,7 @@
     </div>
   </div>
 
-  <!-- ───────────── Schedule (cards are built by js/schedule.js) ───────────── -->
+  <!-- ───────────── Schedule (cards + header are rendered by Rust, crates/tilawa-app) ───────────── -->
   <section class="section-y peer-[.open]:border-t peer-[.open]:border-line" id="schedule">
     <div class="wrap">
       <h2 class="max-w-[16ch] text-h2 font-light tracking-title" data-i18n="schedH"></h2>
@@ -262,7 +262,6 @@
   </div>
 </footer>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 <!-- Loads the Rust/WebAssembly core, then starts every part of the page -->
 <script type="module" src="js/main.js"></script>
 </body>

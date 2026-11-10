@@ -8,32 +8,6 @@
 
 export type ReadableStreamType = "bytes";
 
-/**
- * The handle the page's JavaScript holds.
- */
-export class App {
-    free(): void;
-    [Symbol.dispose](): void;
-    finished_count(): number;
-    /**
-     * The current language: "en" or "id".
-     */
-    lang(): string;
-    /**
-     * Renders the 29 cards into `grid` and the progress header into `head`, restoring
-     * saved progress. `en`/`id` are the contents of lang/en.jsonc and lang/id.jsonc.
-     */
-    constructor(grid: HTMLElement, head: HTMLElement, en: string, id: string, on_event: Function, on_lang: Function);
-    /**
-     * Fills every [data-i18n] element, wires the EN/ID and light/dark switches. Runs the language hook once.
-     */
-    start(): void;
-    /**
-     * All text for "en" or "id" as plain JSON (Indonesian already filled in from English).
-     */
-    texts_json(lang: string): string;
-}
-
 export class IntoUnderlyingByteSource {
     private constructor();
     free(): void;
@@ -100,20 +74,25 @@ export class Tilawa {
     to_json(): string;
 }
 
+/**
+ * Starts the page. `en` / `id` are the contents of lang/en.jsonc and lang/id.jsonc.
+ *
+ * ```js
+ * import init, { start } from "./pkg/tilawa_app.js";
+ * await init();
+ * start(enJsonc, idJsonc);
+ * ```
+ */
+export function start(en: string, id: string): void;
+
 export type InitInput = RequestInfo | URL | Response | BufferSource | WebAssembly.Module;
 
 export interface InitOutput {
     readonly memory: WebAssembly.Memory;
-    readonly __wbg_app_free: (a: number, b: number) => void;
     readonly __wbg_intounderlyingbytesource_free: (a: number, b: number) => void;
     readonly __wbg_intounderlyingsink_free: (a: number, b: number) => void;
     readonly __wbg_intounderlyingsource_free: (a: number, b: number) => void;
     readonly __wbg_tilawa_free: (a: number, b: number) => void;
-    readonly app_finished_count: (a: number) => number;
-    readonly app_lang: (a: number) => [number, number];
-    readonly app_new: (a: any, b: any, c: number, d: number, e: number, f: number, g: any, h: any) => number;
-    readonly app_start: (a: number) => void;
-    readonly app_texts_json: (a: number, b: number, c: number) => [number, number];
     readonly intounderlyingbytesource_autoAllocateChunkSize: (a: number) => number;
     readonly intounderlyingbytesource_cancel: (a: number) => void;
     readonly intounderlyingbytesource_pull: (a: number, b: any) => any;
@@ -124,6 +103,7 @@ export interface InitOutput {
     readonly intounderlyingsink_write: (a: number, b: any) => any;
     readonly intounderlyingsource_cancel: (a: number) => void;
     readonly intounderlyingsource_pull: (a: number, b: any) => any;
+    readonly start: (a: number, b: number, c: number, d: number) => void;
     readonly tilawa_add_page: (a: number, b: number) => [number, number];
     readonly tilawa_can_add: (a: number, b: number) => number;
     readonly tilawa_can_remove: (a: number, b: number) => number;
@@ -138,9 +118,10 @@ export interface InitOutput {
     readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___js_sys_af93aaf2a88d89c7___Function_fn_wasm_bindgen_57db2698c03e39ef___JsValue_____wasm_bindgen_57db2698c03e39ef___sys__Undefined___js_sys_af93aaf2a88d89c7___Function_fn_wasm_bindgen_57db2698c03e39ef___JsValue_____wasm_bindgen_57db2698c03e39ef___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
     readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue__core_23c8f662a870ef55___result__Result_____wasm_bindgen_57db2698c03e39ef___JsError___true_: (a: number, b: number, c: any) => [number, number];
     readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true_: (a: number, b: number, c: any) => void;
-    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true__29: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true__1_: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true__1__27: (a: number, b: number, c: any) => void;
+    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___web_sys_16c1416770dc3066___features__gen_Event__Event______true_: (a: number, b: number, c: any) => void;
     readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke_______true_: (a: number, b: number) => void;
-    readonly wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke_______true__1_: (a: number, b: number) => void;
     readonly __wbindgen_malloc: (a: number, b: number) => number;
     readonly __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
     readonly __wbindgen_exn_store: (a: number) => void;
