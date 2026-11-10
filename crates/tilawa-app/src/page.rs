@@ -10,7 +10,7 @@ use leptos::prelude::*;
 use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::{Animation, Element, HtmlElement};
 
-use crate::State;
+use crate::{State, theme};
 use crate::i18n::{Catalog, Lang};
 
 const LANG_KEY: &str = "tilawa-lang";
@@ -27,11 +27,11 @@ pub struct Page {
     swipe: StoredValue<(u32, Vec<Animation>), LocalStorage>,
 }
 
-fn document() -> web_sys::Document {
+pub(crate) fn document() -> web_sys::Document {
     web_sys::window().and_then(|w| w.document()).expect("a page")
 }
 
-fn by_id(id: &str) -> Option<Element> {
+pub(crate) fn by_id(id: &str) -> Option<Element> {
     document().get_element_by_id(id)
 }
 
@@ -42,13 +42,13 @@ fn all(selector: &str) -> Vec<Element> {
         .collect()
 }
 
-fn reduce_motion() -> bool {
+pub(crate) fn reduce_motion() -> bool {
     web_sys::window()
         .and_then(|w| w.match_media("(prefers-reduced-motion: reduce)").ok().flatten())
         .is_some_and(|m| m.matches())
 }
 
-fn local_storage() -> Option<web_sys::Storage> {
+pub(crate) fn local_storage() -> Option<web_sys::Storage> {
     web_sys::window()?.local_storage().ok()?
 }
 
@@ -103,6 +103,7 @@ impl Page {
             click.forget(); // lives as long as the page
         }
 
+        theme::start(self);
         self.lock_nav_start();
         // Measure again once the web font is in (it changes the width)
         if let Ok(ready) = document().fonts().ready() {
@@ -194,6 +195,7 @@ impl Page {
         });
         self.state.armed.set(false);
         self.state.roll_top();
+        theme::label(self);
 
         let code = JsValue::from_str(lang.code());
         self.on_lang.with_value(|f| {

@@ -1,14 +1,12 @@
 // Entry point. Loads the Rust/WebAssembly app (Leptos), then starts every part of the page.
 //
-//   Rust (crates/tilawa-app)  day cards, progress header, EN/ID language, all text
+//   Rust (crates/tilawa-app)  day cards, progress header, EN/ID language, all text, light/dark
 //   js/state.js     shared: text copy for JS, language hooks, storage, small helpers
-//   js/theme.js     light/dark switch
 //   js/hero.js      tappable moon, breathe in/out, "I'll start tomorrow"
 //   js/schedule.js  carousel around the day cards + "don't skip" bubble
 //   js/extras.js    accordion, copy link, Saweria
 import init, { App } from "../pkg/tilawa_app.js";
 import { T, app as state, runLangHooks } from "./state.js";
-import { initTheme } from "./theme.js";
 import { initHero } from "./hero.js";
 import { initSchedule, onEvent } from "./schedule.js";
 import { initExtras, openFor } from "./extras.js";
@@ -23,7 +21,6 @@ try {
   T.id = JSON.parse(app.texts_json("id"));
   state.lang = app.lang();
 
-  initTheme();
   initHero();
   initExtras();
   initSchedule(app);

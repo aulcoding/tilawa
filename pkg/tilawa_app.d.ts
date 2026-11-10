@@ -25,7 +25,7 @@ export class App {
      */
     constructor(grid: HTMLElement, head: HTMLElement, en: string, id: string, on_event: Function, on_lang: Function);
     /**
-     * Fills every [data-i18n] element and wires the EN/ID switch. Runs the language hook once.
+     * Fills every [data-i18n] element, wires the EN/ID and light/dark switches. Runs the language hook once.
      */
     start(): void;
     /**

@@ -2,9 +2,9 @@
 //!
 //! Phase 3 of the Rust migration: the 29 schedule cards and the progress header
 //! are Leptos components, and Rust owns the page language (all text lives in
-//! lang/*.jsonc). The page's JavaScript still owns the carousel, the "don't skip"
-//! bubble, the hero, and the theme switch. It creates an [`App`], hooks in, then
-//! calls `start()`:
+//! lang/*.jsonc) and the light/dark switch. The page's JavaScript still owns the
+//! carousel, the "don't skip" bubble, the hero and the extras. It creates an
+//! [`App`], hooks in, then calls `start()`:
 //!
 //! ```js
 //! import init, { App } from "./pkg/tilawa_app.js";
@@ -22,6 +22,7 @@ pub mod i18n;
 mod page;
 mod storage;
 mod texts;
+mod theme;
 
 use std::time::Duration;
 
@@ -256,7 +257,7 @@ impl App {
         App { page: page::Page::new(state, catalog, lang, on_lang) }
     }
 
-    /// Fills every [data-i18n] element and wires the EN/ID switch. Runs the language hook once.
+    /// Fills every [data-i18n] element, wires the EN/ID and light/dark switches. Runs the language hook once.
     pub fn start(&self) {
         self.page.start();
     }
