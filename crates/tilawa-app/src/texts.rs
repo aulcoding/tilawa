@@ -5,7 +5,7 @@ use std::collections::HashMap;
 use serde::Deserialize;
 
 /// The keys the Rust code reads. Missing keys fall back to empty / defaults.
-/// (Plain `data-i18n` text in the HTML is filled straight from the catalog, see page.rs.)
+/// (The page text in views.rs reads the catalog directly, through `State::t`.)
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default, rename_all = "camelCase")]
 pub struct Texts {

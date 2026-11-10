@@ -1,8 +1,8 @@
-//! The language switch for the whole page: fills every `[data-i18n]` element,
-//! the tab title and `<html lang>`, slides the text out and back in, remembers
-//! the choice, and keeps the "Start Day 1" button wide enough for both languages.
+//! The language switch for the whole page: flips `state.lang` (every text in views.rs
+//! follows it), sets the tab title and `<html lang>`, slides the text out and back in,
+//! remembers the choice, and keeps the "Start Day 1" button wide enough for both languages.
 //!
-//! Elements marked `data-swipe` (the cards, the header line…) slide with the text.
+//! Elements marked `data-swipe` slide with the text.
 //!
 //! `Page::start` also starts every other part of the page (theme, hero, carousel, extras),
 //! and `apply` refreshes their labels when the language changes.
@@ -11,11 +11,11 @@ use std::time::Duration;
 
 use leptos::prelude::*;
 use wasm_bindgen::{JsCast, prelude::*};
-use web_sys::{Animation, Element};
+use web_sys::{Animation, Element, HtmlElement};
 
 use crate::dom::{all, by_id, document, html, local_storage, on, reduce_motion, window};
 use crate::{State, carousel, extras, hero, theme};
-use crate::i18n::{Catalog, Lang};
+use crate::i18n::Lang;
 
 const LANG_KEY: &str = "tilawa-lang";
 const SWIPE_OUT_MS: u64 = 170;
@@ -23,8 +23,9 @@ const SWIPE_OUT_MS: u64 = 170;
 #[derive(Clone, Copy)]
 pub struct Page {
     pub state: State,
-    pub catalog: StoredValue<Catalog>,
-    pub lang: StoredValue<Lang>,
+    /// The language asked for last. `state.lang` only follows once the old text has slid out,
+    /// so a quick second tap must read this one.
+    wanted: StoredValue<Lang>,
     /// The running "slide out" animations, and an id so a late timer knows it is stale
     swipe: StoredValue<(u32, Vec<Animation>), LocalStorage>,
 }
@@ -54,11 +55,10 @@ fn slide(el: &Element, frames: &js_sys::Object, ms: f64, delay: f64, easing: &st
 }
 
 impl Page {
-    pub fn new(state: State, catalog: Catalog, lang: Lang) -> Page {
+    pub fn new(state: State) -> Page {
         Page {
             state,
-            catalog: StoredValue::new(catalog),
-            lang: StoredValue::new(lang),
+            wanted: StoredValue::new(state.lang.get_untracked()),
             swipe: StoredValue::new_local((0, Vec::new())),
         }
     }
@@ -70,11 +70,11 @@ impl Page {
         hero::start(state);
         extras::start(state);
         carousel::start(state);
-        self.set_lang(self.lang.get_value(), false);
+        self.set_lang(state.lang.get_untracked(), false);
 
         if let Some(btn) = by_id("lang") {
             on(&btn, "click", move |_| {
-                let next = self.lang.get_value().other();
+                let next = self.wanted.get_value().other();
                 self.set_lang(next, true);
                 if let Some(s) = local_storage() {
                     let _ = s.set_item(LANG_KEY, next.code());
@@ -106,7 +106,7 @@ impl Page {
 
     /// Switches language. With `animate`, the old text slides up and out, the new comes up from below.
     pub fn set_lang(self, lang: Lang, animate: bool) {
-        self.lang.set_value(lang);
+        self.wanted.set_value(lang);
         if let Some(b) = by_id("lang") {
             let _ = b.set_attribute("data-lang", lang.code()); // the moon-fill on the switch starts right away
         }
@@ -124,12 +124,7 @@ impl Page {
             return;
         }
 
-        let targets: Vec<Element> = all("[data-i18n], [data-swipe]")
-            .into_iter()
-            .filter(|el| {
-                el.id() != "skip" && el.closest(".btn-roast, .breath").ok().flatten().is_none()
-            })
-            .collect();
+        let targets: Vec<Element> = all("[data-swipe]");
         let out = keyframes(r#"{"opacity":1,"transform":"translateY(0)"}"#, r#"{"opacity":0,"transform":"translateY(-0.5em)"}"#);
         let anims: Vec<Animation> = targets
             .iter()
@@ -154,24 +149,17 @@ impl Page {
         }, Duration::from_millis(SWIPE_OUT_MS));
     }
 
-    /// Puts `lang`'s text everywhere and tells JS.
+    /// Switches every text to `lang` (views.rs follows `state.lang`) and refreshes the labels
+    /// the web-sys modules set themselves.
     fn apply(self, lang: Lang) {
-        self.catalog.with_value(|c| {
-            for el in all("[data-i18n]") {
-                let key = el.get_attribute("data-i18n").unwrap_or_default();
-                if let Some(v) = c.text(lang, &key) {
-                    el.set_inner_html(v);
-                }
-            }
+        self.state.lang.set(lang);
+        self.state.catalog.with_value(|c| {
             let doc = document();
             if let Some(root) = doc.document_element() {
                 let _ = root.set_attribute("lang", lang.code());
             }
             if let Some(title) = c.text(lang, "title") {
                 doc.set_title(title);
-            }
-            if let (Some(b), Some(label)) = (by_id("lang"), c.text(lang, "langLabel")) {
-                let _ = b.set_attribute("aria-label", label);
             }
             // Cards + header update their labels in place
             self.state.texts.set(c.texts(lang));
@@ -187,21 +175,28 @@ impl Page {
 
     /// Keeps the EN/ID switch perfectly still: the "Start Day 1" button next to it gets a
     /// fixed width that fits both languages, so its label change can't push the switch.
+    /// (Measured on a hidden copy, so the real button's text, which Leptos owns, is never touched.)
     fn lock_nav_start(self) {
         let Some(b) = html("nav-start") else { return };
-        let keep = b.inner_html();
-        let style = b.style();
-        let _ = style.set_property("min-width", "");
+        let Some(parent) = b.parent_node() else { return };
+        let Some(probe) = b.clone_node().ok().and_then(|n| n.dyn_into::<HtmlElement>().ok()) else { return };
+        let _ = probe.set_attribute("aria-hidden", "true");
+        let _ = probe.remove_attribute("id");
+        let s = probe.style();
+        let _ = s.set_property("position", "absolute");
+        let _ = s.set_property("visibility", "hidden");
+        let _ = s.set_property("min-width", "0");
+        let _ = parent.append_child(&probe);
         let mut width: f64 = 0.0;
-        self.catalog.with_value(|c| {
+        self.state.catalog.with_value(|c| {
             for lang in [Lang::En, Lang::Id] {
                 if let Some(label) = c.text(lang, "navStart") {
-                    b.set_inner_html(label);
-                    width = width.max(b.get_bounding_client_rect().width());
+                    probe.set_inner_html(label);
+                    width = width.max(probe.get_bounding_client_rect().width());
                 }
             }
         });
-        b.set_inner_html(&keep);
-        let _ = style.set_property("min-width", &format!("{}px", width.ceil()));
+        probe.remove();
+        let _ = b.style().set_property("min-width", &format!("{}px", width.ceil()));
     }
 }

@@ -30,14 +30,14 @@ Every push to `main` runs `.github/workflows/pages.yml`: `cargo test`, then
 
 | Path | What it is |
 |---|---|
-| `index.html` | The page markup (Tailwind classes) + `data-trunk` links telling trunk what to build/copy |
+| `index.html` | Just `<head>` (meta, fonts, `boot.js`) + `data-trunk` links telling trunk what to build/copy |
 | `Trunk.toml` | Build/serve settings and the Tailwind hook |
 | `styles/app.css` | Tailwind source: colour tokens (light/dark), fluid type, breakpoints, animated bits |
 | `js/boot.js` | The only JavaScript: applies the saved theme before the page paints (no dark-mode flash) |
 | `lang/en.jsonc`, `lang/id.jsonc` | All text, one file per language (JSON + `//` comments) |
 | `quran.json` | Start page of every surah (Mushaf Madinah, 604 pages), baked into the WebAssembly |
 | `crates/tilawa-core/` | The 29-day plan and progress rules (plain Rust library) |
-| `crates/tilawa-app/` | Everything on the page that moves; module list at the top of `src/lib.rs` |
+| `crates/tilawa-app/` | The page: markup as Leptos components (`src/views.rs`, Tailwind classes), plus everything that moves; module list at the top of `src/lib.rs` |
 
 ## Rust migration
 
@@ -52,4 +52,5 @@ Moved to Rust step by step.
 - [x] **Phase 4** – full Leptos CSR app built with `trunk`; old JS removed
   - [x] all page behaviour in Rust; QR code made in Rust (no CDN)
   - [x] built with `trunk` + `wasm-opt`, deployed by GitHub Actions
+- [x] **Markup in Leptos** – the whole page is components (`views.rs`); text is reactive (`state.t("key")`), no more `data-i18n`
 - [ ] Phase 5 (optional) – Rust API on Vercel, only if a feature needs a server

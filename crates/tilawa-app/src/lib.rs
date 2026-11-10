@@ -1,12 +1,13 @@
 //! Tilawa UI in Rust: Leptos for the parts that change a lot, web-sys for the rest.
 //!
 //! Phase 4 of the Rust migration: everything that moves on the page is Rust, built with
-//! `trunk` (see Trunk.toml). index.html is the markup; the only JavaScript left is
-//! js/boot.js, which applies the saved theme before the first paint. [`boot`] (called by
-//! main.rs) fetches lang/*.jsonc and starts the page.
+//! `trunk` (see Trunk.toml). The page itself is Leptos components (views.rs); index.html
+//! only has <head>. The only JavaScript left is js/boot.js, which applies the saved theme
+//! before the first paint. [`boot`] (called by main.rs) fetches lang/*.jsonc and starts the page.
 //!
 //! | module        | what                                                        |
 //! |---------------|-------------------------------------------------------------|
+//! | `views`       | the whole page markup (Leptos)                              |
 //! | `card`        | the 29 day cards (Leptos)                                   |
 //! | `header`      | progress count, line, bar, two-tap reset (Leptos)           |
 //! | `carousel`    | carousel, "don't skip" bubble, links to a day               |
@@ -29,6 +30,7 @@ mod page;
 mod storage;
 mod texts;
 mod theme;
+mod views;
 
 use leptos::prelude::*;
 use tilawa_core::{build_days, Outcome, Progress};
@@ -48,8 +50,14 @@ const ARM_MS: u64 = 3000;
 pub struct State {
     /// Pages read per day + the rules (from tilawa-core)
     pub progress: RwSignal<Progress>,
-    /// Text for the current language (from lang/*.jsonc)
+    /// Current language; every text in views.rs follows it
+    pub lang: RwSignal<i18n::Lang>,
+    /// All text, both languages (lang/*.jsonc)
+    pub catalog: StoredValue<i18n::Catalog>,
+    /// The keys the Rust code reads, for the current language
     pub texts: RwSignal<Texts>,
+    /// "Invite a friend": Some(copied?) for a moment after a tap
+    pub shared: RwSignal<Option<bool>>,
     /// The encouraging line shown on each unfinished card: (day, line)
     pub cheer: RwSignal<Vec<(u8, String)>>,
     /// Bumped on every tap so the status line can replay its little rise animation
@@ -66,6 +74,8 @@ pub struct State {
     arm_timer: Timer,
     /// Hides the "don't skip" bubble
     warn_timer: Timer,
+    /// Puts the "Invite a friend" label back
+    pub share_timer: Timer,
 }
 
 /// A random line from `lines`, never `avoid` (unless it is the only one).
@@ -82,6 +92,14 @@ fn pick(lines: &[String], avoid: Option<&str>) -> String {
 }
 
 impl State {
+    /// The text for `key` in the current language, as a closure Leptos can track.
+    pub fn t(self, key: &'static str) -> impl Fn() -> String + Copy + Send + Sync + 'static {
+        move || {
+            let lang = self.lang.get();
+            self.catalog.with_value(|c| c.text(lang, key).unwrap_or_default().to_string())
+        }
+    }
+
     /// Applies a tap (`step` = +1 or −1) on `day`, saves, updates the lines and the carousel.
     pub fn tap(self, day: u8, step: i8) {
         let mut outcome = Outcome::Noop;
@@ -213,7 +231,10 @@ pub fn start(en: &str, id: &str) {
 
     let state = State {
         progress: RwSignal::new(progress),
+        lang: RwSignal::new(lang),
         texts: RwSignal::new(catalog.texts(lang)),
+        catalog: StoredValue::new(catalog),
+        shared: RwSignal::new(None),
         cheer: RwSignal::new(Vec::new()),
         tap_count: RwSignal::new(0),
         top_line: RwSignal::new(String::new()),
@@ -223,21 +244,11 @@ pub fn start(en: &str, id: &str) {
         hint_timer: Timer::new(),
         arm_timer: Timer::new(),
         warn_timer: Timer::new(),
+        share_timer: Timer::new(),
     };
 
-    if let Some(head) = dom::html("progress-head") {
-        leptos::mount::mount_to(head, move || view! { <header::ProgressHead state=state/> }).forget();
-    }
-    if let Some(grid) = dom::html("grid") {
-        let days = build_days();
-        leptos::mount::mount_to(grid, move || {
-            days.into_iter()
-                .enumerate()
-                .map(|(i, day)| view! { <card::DayCard n={i as u8 + 1} day=day state=state/> })
-                .collect_view()
-        })
-        .forget(); // the views live as long as the page
-    }
+    // The whole page; it lives as long as the tab
+    leptos::mount::mount_to_body(move || view! { <views::App state=state/> });
 
-    page::Page::new(state, catalog, lang).start();
+    page::Page::new(state).start();
 }

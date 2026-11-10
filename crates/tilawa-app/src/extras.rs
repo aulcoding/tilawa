@@ -1,4 +1,4 @@
-//! Smaller pieces: the accordion under the hero, "copy link", and the Saweria support box.
+//! Smaller pieces: the accordion under the hero, "copy link", and the Saweria QR code.
 
 use leptos::prelude::*;
 use qrcodegen::{QrCode, QrCodeEcc};
@@ -6,7 +6,7 @@ use wasm_bindgen::{JsCast, prelude::*};
 use web_sys::ScrollLogicalPosition;
 
 use crate::State;
-use crate::dom::{Timer, by_id, document, html, on, scroll_into_view, target, window};
+use crate::dom::{by_id, document, html, on, scroll_into_view, target, window};
 
 /// Change the link here; the button and the QR code both use it.
 pub const SAWERIA_URL: &str = "https://saweria.co/aulcoding";
@@ -82,51 +82,28 @@ fn fallback_copy(text: &str) -> bool {
     ok
 }
 
-fn start_share(state: State) {
-    let Some(btn) = by_id("share") else { return };
-    let timer = Timer::new();
-
+/// Copies the page link; the button label shows how it went for a moment (views.rs reads `shared`).
+pub fn share(state: State) {
     let show = move |ok: bool| {
-        let text = state.texts.with_untracked(|t| if ok { t.share_done.clone() } else { t.share_fail.clone() });
-        for id in ["share-label", "share-live"] {
-            if let Some(el) = by_id(id) {
-                el.set_text_content(Some(&text));
-            }
-        }
-        if let Some(b) = by_id("share") {
-            let _ = b.class_list().toggle_with_force("copied", ok);
-        }
-        timer.start(2600, move || {
-            if let Some(l) = by_id("share-label") {
-                l.set_inner_html(&state.texts.with_untracked(|t| t.share_cta.clone()));
-            }
-            if let Some(l) = by_id("share-live") {
-                l.set_text_content(Some(""));
-            }
-            if let Some(b) = by_id("share") {
-                let _ = b.class_list().remove_1("copied");
-            }
-        });
+        state.shared.set(Some(ok));
+        state.share_timer.start(2600, move || state.shared.set(None));
     };
-
-    on(&btn, "click", move |_| {
-        let href = window().location().href().unwrap_or_default();
-        let url = href.split('#').next().unwrap_or_default().to_string();
-        // navigator.clipboard is missing on plain http (except localhost)
-        let clipboard = js_sys::Reflect::get(&window().navigator(), &"clipboard".into())
-            .ok()
-            .filter(|c| !c.is_undefined() && !c.is_null());
-        let Some(clipboard) = clipboard.map(|c| c.unchecked_into::<web_sys::Clipboard>()) else {
-            show(fallback_copy(&url));
-            return;
-        };
-        let promise = clipboard.write_text(&url);
-        let done = Closure::once(move |_: JsValue| show(true));
-        let failed = Closure::once(move |_: JsValue| show(fallback_copy(&url)));
-        let _ = promise.then2(&done, &failed);
-        done.forget();
-        failed.forget();
-    });
+    let href = window().location().href().unwrap_or_default();
+    let url = href.split('#').next().unwrap_or_default().to_string();
+    // navigator.clipboard is missing on plain http (except localhost)
+    let clipboard = js_sys::Reflect::get(&window().navigator(), &"clipboard".into())
+        .ok()
+        .filter(|c| !c.is_undefined() && !c.is_null());
+    let Some(clipboard) = clipboard.map(|c| c.unchecked_into::<web_sys::Clipboard>()) else {
+        show(fallback_copy(&url));
+        return;
+    };
+    let promise = clipboard.write_text(&url);
+    let done = Closure::once(move |_: JsValue| show(true));
+    let failed = Closure::once(move |_: JsValue| show(fallback_copy(&url)));
+    let _ = promise.then2(&done, &failed);
+    done.forget();
+    failed.forget();
 }
 
 // ── Saweria: button + QR code ──
@@ -148,25 +125,8 @@ pub fn qr_svg(text: &str) -> Option<String> {
     ))
 }
 
-fn start_saweria() {
-    if let Some(a) = by_id("saweria-link") {
-        let _ = a.set_attribute("href", SAWERIA_URL);
-    }
-    let Some(box_) = by_id("saweria-qr") else { return };
-    match qr_svg(SAWERIA_URL) {
-        Some(svg) => box_.set_inner_html(&svg),
-        None => {
-            if let Some(card) = box_.closest(".qr-card").ok().flatten() {
-                let _ = card.set_attribute("hidden", "");
-            }
-        }
-    }
-}
-
 pub fn start(state: State) {
     start_accordion(state);
-    start_share(state);
-    start_saweria();
 }
 
 /// Labels that change with the language.
