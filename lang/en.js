@@ -51,7 +51,7 @@ window.TILAWA_LANG.en = {
   r1h: "Day one. Big match.",
   r1p: "Al-Fatihah plus all of Al-Baqarah. Front-loaded on purpose. A test of nerve.",
   r1s: "Day 1 · 49 pages",   // small key number at the bottom of the card
-  r2h: "Combo deal.",
+  r2h: "They’re besties.",
   r2p: "Al-Anfal &amp; At-Taubah on Day 7, Al-Isra’ &amp; Al-Kahf on Day 11. They come as a pair.",
   r2s: "Days 7 &amp; 11",
   r3h: "Day 15: Al-Furqan.",

@@ -51,7 +51,7 @@ window.TILAWA_LANG.id = {
   r1h: "Hari pertama. Big match.",
   r1p: "Al-Fatihah plus Al-Baqarah full. Sengaja ditaruh di depan. Uji mental.",
   r1s: "Hari 1 · 49 hal",   // angka kecil di bawah kartu
-  r2h: "Paket hemat.",
+  r2h: "Mereka bestie.",
   r2p: "Al-Anfal &amp; At-Taubah di Hari 7, Al-Isra’ &amp; Al-Kahf di Hari 11. Mereka sepaket.",
   r2s: "Hari 7 &amp; 11",
   r3h: "Hari 15: Al-Furqan.",
