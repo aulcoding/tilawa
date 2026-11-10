@@ -1,21 +1,25 @@
 //! Tilawa UI in Leptos.
 //!
-//! Phase 3 (step 1) of the Rust migration: the 29 schedule cards and the progress
-//! header above them (count, line, bar, two-tap reset) are Leptos components.
-//! The page's JavaScript still owns the carousel, the "don't skip" bubble and the
-//! language/theme switches. It creates a [`ScheduleApp`] and is told what happened
-//! after every tap through a callback.
+//! Phase 3 of the Rust migration: the 29 schedule cards and the progress header
+//! are Leptos components, and Rust owns the page language (all text lives in
+//! lang/*.jsonc). The page's JavaScript still owns the carousel, the "don't skip"
+//! bubble, the hero, and the theme switch. It creates an [`App`], hooks in, then
+//! calls `start()`:
 //!
 //! ```js
-//! import init, { ScheduleApp } from "./pkg/tilawa_app.js";
+//! import init, { App } from "./pkg/tilawa_app.js";
 //! await init();
-//! const app = new ScheduleApp(gridEl, headEl, JSON.stringify(texts), (json) => {
-//!   const ev = JSON.parse(json);   // {"kind":"finished","day":4,"finished":4,"firstDayPages":49}
-//! });
+//! const app = new App(gridEl, headEl, enJsonc, idJsonc,
+//!   (json) => { /* after every tap: {"kind":"finished","day":4,"finished":4,…} */ },
+//!   (lang) => { /* the language changed: refresh your own labels */ });
+//! const text = JSON.parse(app.texts_json("id"));
+//! app.start();
 //! ```
 
 mod card;
 mod header;
+pub mod i18n;
+mod page;
 mod storage;
 mod texts;
 
@@ -199,22 +203,35 @@ impl State {
 
 /// The handle the page's JavaScript holds.
 #[wasm_bindgen]
-pub struct ScheduleApp {
-    state: State,
+pub struct App {
+    page: page::Page,
 }
 
 #[wasm_bindgen]
-impl ScheduleApp {
-    /// Renders the 29 cards into `grid` and the progress header into `head`,
-    /// restoring saved progress from localStorage.
+impl App {
+    /// Renders the 29 cards into `grid` and the progress header into `head`, restoring
+    /// saved progress. `en`/`id` are the contents of lang/en.jsonc and lang/id.jsonc.
     #[wasm_bindgen(constructor)]
-    pub fn new(grid: web_sys::HtmlElement, head: web_sys::HtmlElement, texts_json: &str, on_event: js_sys::Function) -> ScheduleApp {
+    pub fn new(
+        grid: web_sys::HtmlElement,
+        head: web_sys::HtmlElement,
+        en: &str,
+        id: &str,
+        on_event: js_sys::Function,
+        on_lang: js_sys::Function,
+    ) -> App {
+        let catalog = i18n::Catalog::parse(en, id);
+        for e in &catalog.errors {
+            web_sys::console::error_1(&JsValue::from_str(&format!("Tilawa text: {e}")));
+        }
+        let lang = page::starting_lang();
+
         let (saved_pages, old_done) = storage::load();
         let progress = Progress::restore(build_days(), saved_pages.as_deref(), old_done.as_deref());
 
         let state = State {
             progress: RwSignal::new(progress),
-            texts: RwSignal::new(Texts::from_json(texts_json)),
+            texts: RwSignal::new(catalog.texts(lang)),
             cheer: RwSignal::new(Vec::new()),
             tap_count: RwSignal::new(0),
             top_line: RwSignal::new(String::new()),
@@ -224,7 +241,6 @@ impl ScheduleApp {
             timers: StoredValue::new((0, 0)),
             notify: StoredValue::new_local(on_event),
         };
-        state.roll_top();
 
         leptos::mount::mount_to(head, move || view! { <header::ProgressHead state=state/> }).forget();
 
@@ -237,18 +253,25 @@ impl ScheduleApp {
         });
         cards.forget(); // both live as long as the page
 
-        ScheduleApp { state }
+        App { page: page::Page::new(state, catalog, lang, on_lang) }
     }
 
-    /// New language: every label updates in place (no re-render, so moons keep their state).
-    /// The header gets a fresh line in the new language and the reset button disarms.
-    pub fn set_texts(&self, texts_json: &str) {
-        self.state.texts.set(Texts::from_json(texts_json));
-        self.state.armed.set(false);
-        self.state.roll_top();
+    /// Fills every [data-i18n] element and wires the EN/ID switch. Runs the language hook once.
+    pub fn start(&self) {
+        self.page.start();
+    }
+
+    /// All text for "en" or "id" as plain JSON (Indonesian already filled in from English).
+    pub fn texts_json(&self, lang: &str) -> String {
+        self.page.catalog.with_value(|c| c.json(i18n::Lang::from_code(lang)))
+    }
+
+    /// The current language: "en" or "id".
+    pub fn lang(&self) -> String {
+        self.page.lang.get_value().code().to_string()
     }
 
     pub fn finished_count(&self) -> u8 {
-        self.state.progress.with_untracked(|p| p.finished_count())
+        self.page.state.progress.with_untracked(|p| p.finished_count())
     }
 }

@@ -47,7 +47,7 @@ pub fn ProgressHead(state: State) -> impl IntoView {
         </div>
         <div>
             <p class="mb-2.5 min-h-[1.4em] text-[17px] leading-[1.4] max-md:flex max-md:min-h-[2.8em] max-md:items-end"
-                id="msg" aria-live="polite">
+                id="msg" aria-live="polite" data-swipe>
                 {move || message(state, finished.get(), first_day_empty.get())}
             </p>
             <div class="h-0.5 overflow-hidden rounded-[2px] bg-line">
@@ -55,7 +55,7 @@ pub fn ProgressHead(state: State) -> impl IntoView {
                     style:width=move || format!("{}%", finished.get() as f64 / 29.0 * 100.0)></i>
             </div>
         </div>
-        <button class=RESET class:armed=move || armed.get() id="reset" type="button"
+        <button class=RESET class:armed=move || armed.get() id="reset" type="button" data-swipe
             disabled=move || empty.get()
             on:click=move |_| state.press_reset()
         >

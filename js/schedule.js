@@ -5,12 +5,11 @@
 // them, handles taps, "−"/"+" and the two-tap reset, applies the rules
 // (crates/tilawa-core), saves progress, and calls onEvent() here afterwards.
 // This file moves the carousel and shows the bubble.
-import { t, reduce, onLang, swipeExtras, replay } from "./state.js";
+import { t, reduce, onLang, replay } from "./state.js";
 
-let app;              // ScheduleApp (Rust/WASM)
+let app;              // App (Rust/WASM)
 
 const grid = document.getElementById("grid");
-const head = document.getElementById("progress-head");
 
 // ── Carousel (1 card per view on phones, 3 on tablet/desktop) ──
 const posEl = document.getElementById("carousel-pos");
@@ -96,7 +95,7 @@ function warnSkip(day) {
 
 // ── What Rust tells us after every tap / reset ──
 // ev = { kind: "added"|"finished"|"removed"|"noop"|"locked"|"undofromend"|"reset", day, finished, firstDayPages, next?, last? }
-function onEvent(json) {
+export function onEvent(json) {
   const ev = JSON.parse(json);
   switch (ev.kind) {
     case "locked": return warnSkip(ev.next);
@@ -124,19 +123,14 @@ function onJump(e) {
   setTimeout(() => (card.querySelector(".day-hit") || card).focus({ preventScroll: true }), 450);
 }
 
-/** `ScheduleApp` is the class exported by the Rust crate (pkg/tilawa_app.js). */
-export function initSchedule(ScheduleApp) {
-  // Rust renders the 29 cards into #grid and the header into #progress-head right away (in the default language;
-  // the language hook below sends the real one).
-  app = new ScheduleApp(grid, head, JSON.stringify(t()), onEvent);
-
+/** `rustApp` is the App from the Rust crate (pkg/tilawa_app.js); the cards are already in #grid. */
+export function initSchedule(rustApp) {
+  app = rustApp;
   initCarousel();
   document.addEventListener("click", onJump);
-  swipeExtras.push(grid, document.getElementById("msg"), document.getElementById("reset"));
 
   let first = true;
   onLang(() => {
-    app.set_texts(JSON.stringify(t()));   // cards + header update their labels in place
     grid.setAttribute("aria-label", t().schedH);
     prevBtn.setAttribute("aria-label", t().carouselPrev);
     nextBtn.setAttribute("aria-label", t().carouselNext);

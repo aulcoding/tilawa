@@ -1,6 +1,6 @@
 // Hero: the moon you can tap toward full, "Breathe in / out" around it,
 // and the "I'll start tomorrow" button that roasts you.
-import { t, reduce, onLang, swipeExtras } from "./state.js";
+import { t, reduce, onLang } from "./state.js";
 
 // ── Tap the moon: each tap grows it one step toward full; after full it goes dark again ──
 const MOON_STEPS = 8;   // taps from dark (0) to full (8)
@@ -90,7 +90,6 @@ function initLater() {
     clearTimeout(timer);
     timer = setTimeout(() => { later.classList.remove("roasted"); live.textContent = ""; }, 2400);
   });
-  swipeExtras.push(later);
 }
 
 export function initHero() {

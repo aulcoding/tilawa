@@ -1,14 +1,9 @@
 // Shared bits every module uses: page text, current language, storage, motion setting.
 
-const L = window.TILAWA_LANG || {};
+/** All page text: T.en and T.id (from lang/*.jsonc, parsed by Rust; Indonesian already falls back to English). */
+export const T = { en: {}, id: {} };
 
-/** All page text: T.en and T.id. Missing Indonesian keys fall back to English. */
-export const T = {
-  en: L.en || {},
-  id: Object.assign({}, L.en || {}, L.id || {}),
-};
-
-/** Current language ("en" | "id"). Change it only through i18n.js. */
+/** Current language ("en" | "id"). Rust owns it; main.js keeps this copy in sync. */
 export const app = { lang: "en" };
 
 /** Text for the current language. */
@@ -21,7 +16,6 @@ export const reduce = !!(window.matchMedia && window.matchMedia("(prefers-reduce
 export const KEYS = {
   pages: "tilawa-pages-v1",     // pages read per day: [49, 5, 0, ...]
   done: "tilawa-progress-v1",   // older format: finished day numbers, still written for compatibility
-  lang: "tilawa-lang",
   theme: "tilawa-theme",
 };
 
@@ -47,10 +41,7 @@ export function pick(list, avoid) {
 }
 
 // ── Language change hooks ──
-// Modules register a function here; i18n.js calls them all whenever the language changes.
+// Modules register a function here; Rust calls them all (through main.js) whenever the language changes.
 const langHooks = [];
 export function onLang(fn) { langHooks.push(fn); }
 export function runLangHooks() { langHooks.forEach((fn) => fn()); }
-
-// Elements that slide up/down with the text when the language switches.
-export const swipeExtras = [];

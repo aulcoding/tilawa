@@ -1,11 +1,16 @@
 /* tslint:disable */
 /* eslint-disable */
 export const memory: WebAssembly.Memory;
+export const __wbg_app_free: (a: number, b: number) => void;
 export const __wbg_intounderlyingbytesource_free: (a: number, b: number) => void;
 export const __wbg_intounderlyingsink_free: (a: number, b: number) => void;
 export const __wbg_intounderlyingsource_free: (a: number, b: number) => void;
-export const __wbg_scheduleapp_free: (a: number, b: number) => void;
 export const __wbg_tilawa_free: (a: number, b: number) => void;
+export const app_finished_count: (a: number) => number;
+export const app_lang: (a: number) => [number, number];
+export const app_new: (a: any, b: any, c: number, d: number, e: number, f: number, g: any, h: any) => number;
+export const app_start: (a: number) => void;
+export const app_texts_json: (a: number, b: number, c: number) => [number, number];
 export const intounderlyingbytesource_autoAllocateChunkSize: (a: number) => number;
 export const intounderlyingbytesource_cancel: (a: number) => void;
 export const intounderlyingbytesource_pull: (a: number, b: any) => any;
@@ -16,9 +21,6 @@ export const intounderlyingsink_close: (a: number) => any;
 export const intounderlyingsink_write: (a: number, b: any) => any;
 export const intounderlyingsource_cancel: (a: number) => void;
 export const intounderlyingsource_pull: (a: number, b: any) => any;
-export const scheduleapp_finished_count: (a: number) => number;
-export const scheduleapp_new: (a: any, b: any, c: number, d: number, e: any) => number;
-export const scheduleapp_set_texts: (a: number, b: number, c: number) => void;
 export const tilawa_add_page: (a: number, b: number) => [number, number];
 export const tilawa_can_add: (a: number, b: number) => number;
 export const tilawa_can_remove: (a: number, b: number) => number;
@@ -33,8 +35,9 @@ export const tilawa_to_json: (a: number) => [number, number];
 export const wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___js_sys_af93aaf2a88d89c7___Function_fn_wasm_bindgen_57db2698c03e39ef___JsValue_____wasm_bindgen_57db2698c03e39ef___sys__Undefined___js_sys_af93aaf2a88d89c7___Function_fn_wasm_bindgen_57db2698c03e39ef___JsValue_____wasm_bindgen_57db2698c03e39ef___sys__Undefined_______true_: (a: number, b: number, c: any, d: any) => void;
 export const wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue__core_23c8f662a870ef55___result__Result_____wasm_bindgen_57db2698c03e39ef___JsError___true_: (a: number, b: number, c: any) => [number, number];
 export const wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true_: (a: number, b: number, c: any) => void;
-export const wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true__27: (a: number, b: number, c: any) => void;
+export const wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke___wasm_bindgen_57db2698c03e39ef___JsValue______true__29: (a: number, b: number, c: any) => void;
 export const wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke_______true_: (a: number, b: number) => void;
+export const wasm_bindgen_57db2698c03e39ef___convert__closures_____invoke_______true__1_: (a: number, b: number) => void;
 export const __wbindgen_malloc: (a: number, b: number) => number;
 export const __wbindgen_realloc: (a: number, b: number, c: number, d: number) => number;
 export const __wbindgen_exn_store: (a: number) => void;

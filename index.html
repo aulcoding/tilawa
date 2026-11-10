@@ -59,7 +59,7 @@
         <p class="mt-8 mb-9 max-w-[52ch] text-sub text-muted" data-i18n="heroSub"></p>
         <div class="flex flex-wrap gap-3">
           <a class="btn btn-primary" href="#plan" data-i18n="ctaPlan"></a>
-          <button class="btn btn-ghost btn-roast" id="later" type="button">
+          <button class="btn btn-ghost btn-roast" id="later" type="button" data-swipe>
             <span class="lbl lbl-a" data-i18n="laterA"></span>
             <span class="lbl lbl-b" aria-hidden="true" data-i18n="laterB"></span>
           </button>
@@ -197,7 +197,7 @@
       </div>
       <!-- pt-5 leaves room for the "don't skip" bubble; px-1/-mx-1 for the flash outline -->
       <div class="relative -mx-1 flex snap-x snap-mandatory scroll-px-1 gap-3 overflow-x-auto overscroll-x-contain px-1 pt-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-           id="grid" role="region" aria-roledescription="carousel" tabindex="-1"></div>
+           id="grid" data-swipe role="region" aria-roledescription="carousel" tabindex="-1"></div>
       <p class="mt-6 text-[14px] text-muted" data-i18n="note"></p>
     </div>
   </section>
@@ -263,8 +263,6 @@
 </footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-<script src="lang/en.js"></script>
-<script src="lang/id.js"></script>
 <!-- Loads the Rust/WebAssembly core, then starts every part of the page -->
 <script type="module" src="js/main.js"></script>
 </body>
