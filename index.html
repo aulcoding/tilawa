@@ -14,9 +14,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500&family=Newsreader:ital,opsz,wght@1,6..72,300;1,6..72,400&display=swap" rel="stylesheet">
-<!-- Compiled from styles/app.css by Tailwind (npm run build:css) -->
-<link rel="stylesheet" href="styles/build.css">
+<!-- Compiled from styles/app.css by Tailwind (the hook in Trunk.toml) -->
+<link data-trunk rel="css" href="styles/build.css">
 <!-- Runs before the page paints: carries old "chillawah-*" saves over, applies the saved theme (no flash) -->
+<link data-trunk rel="copy-file" href="js/boot.js" data-target-path="js">
 <script src="js/boot.js"></script>
 </head>
 <body>
@@ -262,7 +263,8 @@
   </div>
 </footer>
 
-<!-- Loads the Rust/WebAssembly core, then starts every part of the page -->
-<script type="module" src="js/main.js"></script>
+<!-- trunk builds crates/tilawa-app (Rust → WebAssembly, then wasm-opt) and adds the loader here -->
+<link data-trunk rel="rust" href="crates/tilawa-app/Cargo.toml" data-bin="tilawa-app" data-wasm-opt="z">
+<link data-trunk rel="copy-dir" href="lang">
 </body>
 </html>

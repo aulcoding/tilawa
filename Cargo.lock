@@ -1448,6 +1448,7 @@ dependencies = [
  "serde_json",
  "tilawa-core",
  "wasm-bindgen",
+ "wasm-bindgen-futures",
  "web-sys",
 ]
 
@@ -1457,7 +1458,6 @@ version = "0.1.0"
 dependencies = [
  "serde",
  "serde_json",
- "wasm-bindgen",
 ]
 
 [[package]]

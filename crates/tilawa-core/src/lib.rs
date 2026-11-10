@@ -1,11 +1,9 @@
 //! Tilawa core: the 29-day plan and the rules for reading progress.
 //!
 //! Everything here is plain Rust with no browser code, so it can be tested
-//! with `cargo test`. The browser talks to it through `wasm.rs`.
+//! with `cargo test`. The page uses it through `tilawa-app` (Leptos).
 
 use serde::{Deserialize, Serialize};
-
-mod wasm;
 
 /// How many days the plan has.
 pub const DAY_COUNT: usize = 29;

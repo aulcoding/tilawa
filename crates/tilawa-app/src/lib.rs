@@ -1,8 +1,9 @@
 //! Tilawa UI in Rust: Leptos for the parts that change a lot, web-sys for the rest.
 //!
-//! Phase 4 of the Rust migration: everything that moves on the page is Rust.
-//! index.html is the markup; the only JavaScript left is js/boot.js (applies the saved
-//! theme before the first paint) and js/main.js (fetches lang/*.jsonc and calls [`start`]).
+//! Phase 4 of the Rust migration: everything that moves on the page is Rust, built with
+//! `trunk` (see Trunk.toml). index.html is the markup; the only JavaScript left is
+//! js/boot.js, which applies the saved theme before the first paint. [`boot`] (called by
+//! main.rs) fetches lang/*.jsonc and starts the page.
 //!
 //! | module        | what                                                        |
 //! |---------------|-------------------------------------------------------------|
@@ -31,7 +32,7 @@ mod theme;
 
 use leptos::prelude::*;
 use tilawa_core::{build_days, Outcome, Progress};
-use wasm_bindgen::prelude::*;
+use wasm_bindgen::{JsCast, prelude::*};
 
 use dom::Timer;
 
@@ -169,14 +170,37 @@ impl State {
     }
 }
 
+/// Fetches the page text, then starts the page.
+pub fn boot() {
+    // (wasm-bindgen-futures, not leptos::task: the Leptos executor only starts with the first mount)
+    wasm_bindgen_futures::spawn_local(async {
+        // Both requests start right away; then wait for each
+        let (en, id) = (fetch_text("lang/en.jsonc"), fetch_text("lang/id.jsonc"));
+        let (en, id) = (en.await, id.await);
+        start(&en, &id);
+    });
+}
+
+/// The body of `url` as text, or "" if it can't be loaded (the catalog then logs why).
+async fn fetch_text(url: &str) -> String {
+    let request = dom::window().fetch_with_str(url);
+    let load = async {
+        let response: web_sys::Response = wasm_bindgen_futures::JsFuture::from(request).await?.dyn_into()?;
+        if !response.ok() {
+            return Err(JsValue::from_str(&format!("{url}: HTTP {}", response.status())));
+        }
+        wasm_bindgen_futures::JsFuture::from(response.text()?).await
+    };
+    match load.await {
+        Ok(text) => text.as_string().unwrap_or_default(),
+        Err(e) => {
+            web_sys::console::error_2(&JsValue::from_str("Tilawa: couldn't load"), &e);
+            String::new()
+        }
+    }
+}
+
 /// Starts the page. `en` / `id` are the contents of lang/en.jsonc and lang/id.jsonc.
-///
-/// ```js
-/// import init, { start } from "./pkg/tilawa_app.js";
-/// await init();
-/// start(enJsonc, idJsonc);
-/// ```
-#[wasm_bindgen]
 pub fn start(en: &str, id: &str) {
     let catalog = i18n::Catalog::parse(en, id);
     for e in &catalog.errors {

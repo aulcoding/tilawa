@@ -1,12 +1,10 @@
 {
   "name": "tilawa",
   "private": true,
-  "description": "Tilawa: a 29-day Qur'an reading plan, split by surah",
+  "description": "Tilawa: a 29-day Qur'an reading plan, split by surah. npm only provides Tailwind; the build is trunk (see Trunk.toml).",
   "scripts": {
-    "dev": "node dev.js",
-    "build:css": "tailwindcss -i styles/app.css -o styles/build.css --minify",
-    "build:wasm": "wasm-pack build crates/tilawa-app --target web --release --out-dir ../../pkg --no-pack",
-    "build": "npm run build:wasm && npm run build:css",
+    "dev": "trunk serve",
+    "build": "trunk build --release",
     "test": "cargo test"
   },
   "devDependencies": {

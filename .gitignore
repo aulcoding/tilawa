@@ -10,5 +10,9 @@ skills-lock.json
 *~
 node_modules/
 
-# Rust build output (pkg/ is committed so the site works without building)
+# Rust build output
 target/
+
+# Build output (trunk) and the CSS the Tailwind hook generates
+dist/
+styles/build.css
