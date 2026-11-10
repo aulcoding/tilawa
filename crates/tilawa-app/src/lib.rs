@@ -16,6 +16,7 @@
 //! | `theme`       | light/dark switch                                           |
 //! | `hero`        | tappable moon, breathe in/out, "I'll start tomorrow"        |
 //! | `extras`      | accordion, copy link, Saweria button + QR                   |
+//! | `pwa`         | registers sw.js (offline + installable)                     |
 //! | `dom`         | small web-sys helpers                                       |
 //! | `storage`     | saved progress                                              |
 
@@ -27,6 +28,7 @@ mod header;
 mod hero;
 pub mod i18n;
 mod page;
+mod pwa;
 mod storage;
 mod texts;
 mod theme;
@@ -251,4 +253,5 @@ pub fn start(en: &str, id: &str) {
     leptos::mount::mount_to_body(move || view! { <views::App state=state/> });
 
     page::Page::new(state).start();
+    pwa::register();
 }

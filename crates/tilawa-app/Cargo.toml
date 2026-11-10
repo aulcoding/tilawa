@@ -23,5 +23,5 @@ web-sys = { version = "0.3", features = [
     "Element", "Event", "EventTarget", "FocusOptions", "FontFaceSet", "HtmlButtonElement", "HtmlDocument",
     "HtmlElement", "HtmlTextAreaElement", "KeyboardEvent", "Location", "MediaQueryList", "Navigator",
     "NodeList", "Response", "ScrollBehavior", "ScrollIntoViewOptions", "ScrollLogicalPosition", "ScrollToOptions",
-    "Storage", "Window",
+    "ServiceWorkerContainer", "Storage", "Window",
 ] }

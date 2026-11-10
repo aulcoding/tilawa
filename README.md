@@ -1,7 +1,7 @@
 # Tilawa
 
 A 29-day Qur’an reading plan, split by surah, with page-by-page progress.
-EN/ID, light/dark, no account, progress saved in the browser.
+EN/ID, light/dark, no account, progress saved in the browser. Installable, works offline.
 
 Written in Rust ([Leptos](https://leptos.dev) + web-sys), compiled to WebAssembly with
 [trunk](https://trunkrs.dev). Live at https://aulcoding.github.io/tilawa/.
@@ -33,7 +33,8 @@ Every push to `main` runs `.github/workflows/pages.yml`: `cargo test`, then
 | `index.html` | Just `<head>` (meta, fonts, `boot.js`) + `data-trunk` links telling trunk what to build/copy |
 | `Trunk.toml` | Build/serve settings and the Tailwind hook |
 | `styles/app.css` | Tailwind source: colour tokens (light/dark), fluid type, breakpoints, animated bits |
-| `js/boot.js` | The only JavaScript: applies the saved theme before the page paints (no dark-mode flash) |
+| `js/boot.js` | Applies the saved theme before the page paints (no dark-mode flash) |
+| `sw.js` · `manifest.webmanifest` · `icons/` | PWA: service worker (offline cache, notes at its top), app manifest, icons (`icons/icon.svg` → PNGs with `rsvg-convert`) |
 | `lang/en.jsonc`, `lang/id.jsonc` | All text, one file per language (JSON + `//` comments) |
 | `quran.json` | Start page of every surah (Mushaf Madinah, 604 pages), baked into the WebAssembly |
 | `crates/tilawa-core/` | The 29-day plan and progress rules (plain Rust library) |
@@ -53,4 +54,5 @@ Moved to Rust step by step.
   - [x] all page behaviour in Rust; QR code made in Rust (no CDN)
   - [x] built with `trunk` + `wasm-opt`, deployed by GitHub Actions
 - [x] **Markup in Leptos** – the whole page is components (`views.rs`); text is reactive (`state.t("key")`), no more `data-i18n`
+- [x] **PWA** – install to home screen, opens offline (`sw.js`, registered from `pwa.rs` in release builds)
 - [ ] Phase 5 (optional) – Rust API on Vercel, only if a feature needs a server

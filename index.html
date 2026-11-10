@@ -10,6 +10,8 @@
 <meta property="og:type" content="website">
 <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
 <meta name="theme-color" content="#F3F4F6" media="(prefers-color-scheme: light)">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌙</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -25,5 +27,9 @@
 <!-- trunk builds crates/tilawa-app (Rust → WebAssembly, then wasm-opt) and adds the loader here -->
 <link data-trunk rel="rust" href="crates/tilawa-app/Cargo.toml" data-bin="tilawa-app" data-wasm-opt="z">
 <link data-trunk rel="copy-dir" href="lang">
+<!-- PWA: app icons, manifest, and the service worker (offline) -->
+<link data-trunk rel="copy-dir" href="icons">
+<link data-trunk rel="copy-file" href="manifest.webmanifest">
+<link data-trunk rel="copy-file" href="sw.js">
 </body>
 </html>
