@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn crescent_matches_the_old_javascript() {
-        // moonPath(3/16) in js/hero.js
+        // moonPath(3/16) in the old js/hero.js gave this exact path
         assert_eq!(moon_path(phase(3)), "M100 10A90 90 0 0 1 100 190A34.44 90 0 0 0 100 10Z");
     }
 }

@@ -4,7 +4,7 @@
  *   npm run build:css        (or automatically while `node dev.js` runs)
  *
  * Layout, spacing, type and colour are Tailwind utilities in the markup
- * (index.html and the card template in js/schedule.js). This file holds:
+ * (index.html and the Rust views in crates/tilawa-app/src). This file holds:
  *   1. design tokens (colours for light/dark, fonts, fluid type, breakpoints)
  *   2. a few base rules
  *   3. components: repeated buttons, and the stateful/animated bits
@@ -228,14 +228,14 @@
   /* Hero moon */
   .hero-moon .lit.fading { opacity: 0; }
   .moon-glide:has(.moon-tap:active) svg { scale: .97; transition: scale .1s; }
-  /* "Breathe in / out": placed around the moon by js/hero.js */
+  /* "Breathe in / out": placed around the moon by crates/tilawa-app/src/hero.rs */
   .breath span { display: none; }
   .breath[data-phase="in"] span:first-child,
   .breath[data-phase="out"] span:last-child { display: inline; }
 
   /* Schedule card. The whole card is one big "+1 page" button (.day-hit);
      the text sits above it but lets taps through, except the − / + buttons.
-     Card states (is-done, locked, is-next...) are utility variants in js/schedule.js,
+     Card states (is-done, locked, is-next...) are utility variants in crates/tilawa-app/src/card.rs,
      because in Tailwind v4 utilities always beat this components layer. */
   .day > :not(.day-hit):not(.day-warn) { position: relative; z-index: 1; pointer-events: none; }
   .day .day-ctrl { pointer-events: auto; }
