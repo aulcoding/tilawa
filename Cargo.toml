@@ -2,7 +2,7 @@
 # Later phases add the Leptos app next to it under crates/.
 [workspace]
 resolver = "3"
-members = ["crates/tilawa-core"]
+members = ["crates/tilawa-core", "crates/tilawa-app"]
 
 [profile.release]
 opt-level = "s"     # smaller .wasm

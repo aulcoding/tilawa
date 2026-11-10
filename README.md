@@ -25,8 +25,9 @@ Open it through the server, not as a file: the browser only loads the WebAssembl
 | `js/state.js` · `js/boot.js` | Shared helpers · pre-paint theme script |
 | `lang/en.js`, `lang/id.js` | All text, one file per language |
 | `quran.json` | Start page of every surah (Mushaf Madinah, 604 pages) |
-| `crates/tilawa-core/` | Rust: the 29-day plan and progress rules |
-| `pkg/` | `tilawa-core` compiled to WebAssembly (generated, committed) |
+| `crates/tilawa-core/` | Rust: the 29-day plan and progress rules (plain library, `cargo test`) |
+| `crates/tilawa-app/` | Rust + Leptos: the day cards (uses `tilawa-core`) |
+| `pkg/` | `tilawa-app` compiled to WebAssembly (generated, committed) |
 | `dev.js` | Dev server with auto-reload + Tailwind watch |
 
 Generated files are committed so GitHub Pages can serve the repo as-is. After editing,
@@ -37,7 +38,7 @@ Generated files are committed so GitHub Pages can serve the repo as-is. After ed
 Moving to Rust step by step.
 
 - [x] **Phase 1** – plan + progress rules in Rust (`tilawa-core`), called from the existing JS through WebAssembly
-- [ ] **Phase 2** – schedule grid rendered with Leptos
+- [x] **Phase 2** – schedule cards rendered with Leptos (`tilawa-app`); JS keeps the header, carousel and bubbles
 - [ ] **Phase 3** – progress header, language, theme in Leptos; text as JSON
 - [ ] **Phase 4** – full Leptos CSR app built with `trunk`; old JS removed
 - [ ] Phase 5 (optional) – Rust API on Vercel, only if a feature needs a server
@@ -46,7 +47,7 @@ Moving to Rust step by step.
 
 ```bash
 cargo test                                   # run the rules' unit tests (no browser needed)
-wasm-pack build crates/tilawa-core --target web --release --out-dir ../../pkg --no-pack
+npm run build:wasm      # = wasm-pack build crates/tilawa-app --target web --release --out-dir ../../pkg --no-pack
 ```
 
 Rebuild `pkg/` after changing anything in `crates/`, then refresh the page.

@@ -1,13 +1,12 @@
-// The 29-day schedule: progress header, the day cards, and taps on them.
-// The rules (what a tap may do) are decided by the Rust core (crates/tilawa-core);
-// this file draws the result. Phase 2 of the Rust migration replaces it with Leptos.
-import { t, reduce, KEYS, store, onLang, swipeExtras, replay, pick } from "./state.js";
+// The 29-day schedule: progress header, carousel, and feedback bubbles.
+//
+// Phase 2 of the Rust migration: the day cards themselves are a Leptos component
+// (crates/tilawa-app/src/card.rs). Rust renders them, handles taps and "−"/"+",
+// applies the rules (crates/tilawa-core), saves progress, and calls onEvent() here
+// after every tap. This file draws everything around the cards.
+import { t, reduce, onLang, swipeExtras, replay, pick } from "./state.js";
 
-let core;          // Tilawa (Rust/WASM)
-let DAYS = [];     // [{ s: surah names, r: [first, last] surah, tag?, pg: [first, last] page }]
-let pages = [];    // pages read per day, a read-only mirror of the core
-let done = new Set();
-let cheerText = {};   // the line currently shown on each unfinished card
+let app;              // ScheduleApp (Rust/WASM)
 let topLine = "";     // the line next to the big progress number
 
 const grid = document.getElementById("grid");
@@ -15,89 +14,6 @@ const countEl = document.getElementById("count");
 const msgEl = document.getElementById("msg");
 const barEl = document.getElementById("bar");
 const resetBtn = document.getElementById("reset");
-
-const total = (i) => DAYS[i].pg[1] - DAYS[i].pg[0] + 1;
-const sync = () => { pages = Array.from(core.pages()); };
-
-function save() {
-  store.set(KEYS.pages, core.to_json());
-  store.set(KEYS.done, core.finished_days_json());   // kept for older versions
-}
-
-// ── Card moon ──
-// Phase per day: a visible crescent on Day 1, full on Day 15, a last sliver on Day 29.
-// The lit part has two layers: a dim one, and a bright one behind a clip that rises
-// from the bottom to the top when the day is finished (styles: .day-moon in styles/app.css).
-function moonSVG(n) {
-  const p = n <= 15 ? 0.08 + (n - 1) * 0.03 : 0.5 + (n - 15) * 0.03;
-  const r = 18, c = 20;
-  let shape;
-  if (Math.abs(p - 0.5) < 0.001) {
-    shape = (cls) => `<circle class="${cls}" cx="${c}" cy="${c}" r="${r}"/>`;
-  } else {
-    const rx = (r * Math.abs(Math.cos(2 * Math.PI * p))).toFixed(2);
-    const wax = p < 0.5;
-    const outer = wax ? 1 : 0;
-    const inner = wax ? (p < 0.25 ? 0 : 1) : (p > 0.75 ? 1 : 0);
-    const d = `M${c} ${c - r}A${r} ${r} 0 0 ${outer} ${c} ${c + r}A${rx} ${r} 0 0 ${inner} ${c} ${c - r}Z`;
-    shape = (cls) => `<path class="${cls}" d="${d}"/>`;
-  }
-  return `<svg class="day-moon size-[38px] flex-none" viewBox="0 0 40 40" aria-hidden="true">`
-    + `<defs><clipPath id="rise-${n}"><rect class="rise" x="0" y="0" width="40" height="40"/></clipPath></defs>`
-    + `<circle class="disk" cx="${c}" cy="${c}" r="${r}"/>`
-    + shape("lit-base")
-    + `<g clip-path="url(#rise-${n})">${shape("lit-on")}</g>`
-    + `</svg>`;
-}
-
-// ── Card markup ──
-// State classes set by update(): is-done, is-next, locked, has-status, flash, just-done.
-const CARD = [
-  "day group/day relative flex min-h-[204px] flex-col gap-3 rounded-card border border-line bg-surface px-[18px] pt-[18px] pb-3.5 text-left",
-  "transition-[border-color,background-color] duration-250 [-webkit-tap-highlight-color:transparent]",
-  "hover:border-line-strong [&.is-next]:border-line-strong",
-  "[&.is-done]:border-line-strong [&.is-done]:bg-surface-done",
-  "[&.locked]:opacity-50 [&.locked]:hover:border-line [&.flash]:opacity-100!",
-  "w-[calc((100%-24px)/3)] flex-none snap-start max-md:w-full",   // a slide: 3 per view (gap 12px), 1 on phones
-].join(" ");
-const STEP = "day-step grid size-8 place-items-center rounded-full border border-line-strong bg-bg text-[18px] leading-none text-fg "
-  + "transition-[border-color,opacity,transform] duration-200 hover:border-fg active:scale-90 "
-  + "aria-disabled:opacity-35 aria-disabled:hover:border-line-strong group-[.locked]/day:opacity-35";
-
-function cardHTML(d, i) {
-  const n = i + 1, tt = t();
-  const range = d.r[0] === d.r[1] ? tt.surah + d.r[0] : tt.surahs + d.r[0] + "–" + d.r[1];
-  const surahs = d.s.map((x) => `<span>${x.split(" – ").map((y) => `<span class="whitespace-nowrap">${y}</span>`).join(" – ")}</span>`).join("");
-  return `<article class="${CARD}" id="day-${n}" data-day="${n}">
-    <button class="day-hit absolute inset-0 z-0 rounded-[inherit] focus-visible:outline-offset-2" type="button"></button>
-    <div class="flex items-start justify-between gap-2">
-      <span class="text-[14px] leading-[1.2] text-muted">${tt.day}<b class="mt-1 block text-[34px] leading-none font-light tracking-stats text-fg tabular-nums">${n}</b></span>
-      ${moonSVG(n)}
-    </div>
-    ${d.tag ? `<span class="self-start rounded-xl border border-line-strong px-2.5 py-[5px] text-[12.5px] leading-[1.3]">${(tt.tags || {})[d.tag] || ""}</span>` : ""}
-    <div class="mt-auto text-[17px] leading-[1.3] tracking-[-.01em] [&>span]:block">${surahs}</div>
-    <p class="day-status line-clamp-2 h-[2.7em] text-[13px] leading-[1.35] text-muted group-[.is-done]/day:text-fg" aria-live="polite"></p>
-    <div class="flex flex-col gap-2">
-      <div class="day-bar h-[3px] overflow-hidden rounded-[3px] bg-line"><i class="block h-full w-(--fill,0%) rounded-[inherit] bg-fg transition-[width] duration-350 ease-soft motion-reduce:transition-none"></i></div>
-      <div class="flex items-center justify-between gap-2">
-        <span class="day-count text-[13px] whitespace-nowrap text-muted tabular-nums"><b class="font-medium text-fg">0</b>/${total(i)} ${tt.pagesUnit}</span>
-        <span class="day-ctrl inline-flex gap-1.5">
-          <button class="${STEP}" type="button" data-step="-1" aria-label="${tt.pageMinus}">−</button>
-          <button class="${STEP}" type="button" data-step="1" aria-label="${tt.pagePlus}">+</button>
-        </span>
-      </div>
-    </div>
-    <div class="flex justify-between gap-2 text-[12.5px] text-muted [&>span]:whitespace-nowrap">
-      <span>${range}</span><span>${tt.pagesShort} ${d.pg[0]}–${d.pg[1]}</span>
-    </div>
-  </article>`;
-}
-
-function renderGrid() {
-  const keep = firstVisible();
-  grid.innerHTML = DAYS.map(cardHTML).join("");
-  goTo(keep, false);
-}
 
 // ── Carousel (1 card per view on phones, 3 on tablet/desktop) ──
 const posEl = document.getElementById("carousel-pos");
@@ -152,57 +68,25 @@ function initCarousel() {
   });
 }
 
-// ── Progress header line ──
-// Changes only when a day is finished: warm lines while on Day 1, lightly sarcastic from Day 2 on.
+// ── Progress header ──
+// The line changes only when a day is finished: warm lines while on Day 1, lightly sarcastic from Day 2 on.
 function rollTop() {
-  const n = done.size;
-  if (n >= 29 || (n === 0 && pages[0] === 0)) { topLine = ""; return; }
+  const n = app.finished_count();
+  if (n >= 29 || (n === 0 && app.pages_on(1) === 0)) { topLine = ""; return; }
   topLine = pick(n === 0 ? t().progressDay1 : t().progress, topLine);
 }
 function message(n) {
   const m = t().msg;
-  if (n === 0 && pages[0] === 0) return m[0];
+  if (n === 0 && app.pages_on(1) === 0) return m[0];
   if (n >= 29) return m[3];
   return topLine || (n < 15 ? m[1] : m[2]);
 }
-
-/** Calming line on a card, picked on every tap. {left} = pages left that day. */
-function cheer(d) {
-  const left = total(d - 1) - pages[d - 1];
-  const list = (t().cheer || []).map((x) => x.replace("{left}", left));
-  return pick(list, cheerText[d]);
-}
-
-/** Redraws the header and every card from the current progress (no re-render, so the moons can animate). */
-function update() {
-  done = new Set();
-  for (let i = 0; i < 29 && pages[i] >= total(i); i++) done.add(i + 1);
-  const n = done.size, cur = n + 1, tt = t();
+function updateHeader() {
+  const n = app.finished_count();
   countEl.textContent = n;
   barEl.style.width = (n / 29) * 100 + "%";
   msgEl.textContent = message(n);
-  resetBtn.disabled = pages.every((v) => v === 0);
-
-  grid.querySelectorAll(".day").forEach((card) => {
-    const d = +card.dataset.day, i = d - 1, tot = total(i), v = pages[i];
-    const isDone = v >= tot;
-    card.classList.toggle("is-done", isDone);
-    card.classList.toggle("locked", d > cur);
-    card.classList.toggle("is-next", d === cur);
-    card.style.setProperty("--fill", (v / tot) * 100 + "%");
-    card.querySelector(".day-count b").textContent = v;
-
-    const status = isDone ? ((tt.doneDays && tt.doneDays[i]) || tt.done) : (v > 0 ? cheerText[d] || "" : "");
-    const st = card.querySelector(".day-status");
-    if (st.textContent !== status) st.textContent = status;
-    card.classList.toggle("has-status", !!status);
-
-    const canMinus = core.can_remove(d), canPlus = core.can_add(d);   // decided in Rust
-    card.querySelector('[data-step="-1"]').setAttribute("aria-disabled", String(!canMinus));
-    card.querySelector('[data-step="1"]').setAttribute("aria-disabled", String(!canPlus));
-    card.querySelector(".day-hit").setAttribute("aria-label",
-      `${tt.day} ${d}: ${v}/${tot} ${tt.pagesUnit}${canPlus ? ". " + tt.pagePlus : ""}`);
-  });
+  resetBtn.disabled = app.is_empty();
 }
 
 // ── Feedback when a tap isn't allowed ──
@@ -213,7 +97,7 @@ function hint(text, day) {
   msgEl.textContent = text;
   const card = document.getElementById("day-" + day);
   if (card) { replay(card, "flash"); reveal(day); }
-  hintTimer = setTimeout(() => { msgEl.textContent = message(done.size); }, 2800);
+  hintTimer = setTimeout(() => { msgEl.textContent = message(app.finished_count()); }, 2800);
 }
 
 let warnTimer;
@@ -238,36 +122,26 @@ function warnSkip(day) {
   }, 2600);
 }
 
-// ── Taps: the card or "+" = one page read, "−" = one page back ──
-function onTap(e) {
-  const card = e.target.closest(".day");
-  if (!card) return;
-  const stepBtn = e.target.closest(".day-step");
-  const step = stepBtn ? +stepBtn.dataset.step : 1;
-  const d = +card.dataset.day;
-  const before = done.size;
-
-  const out = JSON.parse(step > 0 ? core.add_page(d) : core.remove_page(d));   // Rust decides
-  if (out.kind === "locked") return warnSkip(out.next);
-  if (out.kind === "undofromend") return hint(t().undoLast.replace("{n}", out.last), out.last);
-  if (out.kind === "noop") return;
-
-  sync();
-  if (out.kind === "finished") {
-    delete cheerText[d];
-    card.classList.add("just-done");
-    setTimeout(() => card.classList.remove("just-done"), 1600);
-    if (d < 29) setTimeout(() => reveal(d + 1), 900);   // after the moon fills, slide to the next day
-  } else {
-    cheerText[d] = cheer(d);
+// ── What Rust tells us after every tap ──
+// ev = { kind: "added"|"finished"|"removed"|"noop"|"locked"|"undofromend", day, finished, firstDayPages, next?, last? }
+let lastFinished = 0;
+function onEvent(json) {
+  const ev = JSON.parse(json);
+  switch (ev.kind) {
+    case "locked": return warnSkip(ev.next);
+    case "undofromend": return hint(t().undoLast.replace("{n}", ev.last), ev.last);
+    case "noop": return;
+    case "finished": {
+      const card = document.getElementById("day-" + ev.day);
+      card.classList.add("just-done");
+      setTimeout(() => card.classList.remove("just-done"), 1600);
+      if (ev.day < 29) setTimeout(() => reveal(ev.day + 1), 900);   // after the moon fills, slide to the next day
+    }
   }
   clearTimeout(hintTimer);
-  save();
-  update();
-  if (done.size !== before || !topLine) rollTop();   // the header line changes only when a day is (un)finished
-  msgEl.textContent = message(done.size);
-  const st = card.querySelector(".day-status");      // replay the little rise on every new line
-  st.style.animation = "none"; void st.offsetWidth; st.style.animation = "";
+  if (ev.finished !== lastFinished || !topLine) rollTop();   // the header line changes only when a day is (un)finished
+  lastFinished = ev.finished;
+  updateHeader();
 }
 
 // ── Two-tap reset, no dialog needed ──
@@ -280,7 +154,11 @@ function disarm() {
 function onReset() {
   if (resetBtn.classList.contains("armed")) {
     disarm();
-    core.reset(); sync(); cheerText = {}; save(); update();
+    app.reset();
+    lastFinished = 0;
+    rollTop();
+    updateHeader();
+    goTo(1);
     return;
   }
   resetBtn.classList.add("armed");
@@ -301,26 +179,28 @@ function onJump(e) {
   setTimeout(() => (card.querySelector(".day-hit") || card).focus({ preventScroll: true }), 450);
 }
 
-export function initSchedule(tilawaCore) {
-  core = tilawaCore;
-  DAYS = JSON.parse(core.days_json());   // built in Rust from quran.json
-  sync();
-  grid.addEventListener("click", onTap);
+/** `ScheduleApp` is the class exported by the Rust crate (pkg/tilawa_app.js). */
+export function initSchedule(ScheduleApp) {
+  // Rust renders the 29 cards into #grid right away (in the default language;
+  // the language hook below sends the real one).
+  app = new ScheduleApp(grid, JSON.stringify(t()), onEvent);
+  lastFinished = app.finished_count();
+
   initCarousel();
   resetBtn.addEventListener("click", onReset);
   document.addEventListener("click", onJump);
   swipeExtras.push(grid, msgEl, resetBtn);
+
   let first = true;
   onLang(() => {
+    app.set_texts(JSON.stringify(t()));   // cards update their labels in place
     disarm();
-    renderGrid();
-    update();
     grid.setAttribute("aria-label", t().schedH);
     prevBtn.setAttribute("aria-label", t().carouselPrev);
     nextBtn.setAttribute("aria-label", t().carouselNext);
-    if (first) { first = false; goTo(core.finished_count() + 1, false); }   // open on the day you're reading
-    updateNav();
+    if (first) { first = false; goTo(app.finished_count() + 1, false); }   // open on the day you're reading
     rollTop();
-    msgEl.textContent = message(done.size);
+    updateHeader();
+    updateNav();
   });
 }

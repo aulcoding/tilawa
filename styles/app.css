@@ -14,6 +14,7 @@
 
 @source "../index.html";
 @source "../js";
+@source "../crates/tilawa-app/src";   /* Tailwind classes in the Leptos day card */
 
 /* ── 1. Tokens ─────────────────────────────────────────────────────────── */
 

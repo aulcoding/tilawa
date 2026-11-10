@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "node dev.js",
     "build:css": "tailwindcss -i styles/app.css -o styles/build.css --minify",
-    "build:wasm": "wasm-pack build crates/tilawa-core --target web --release --out-dir ../../pkg --no-pack",
+    "build:wasm": "wasm-pack build crates/tilawa-app --target web --release --out-dir ../../pkg --no-pack",
     "build": "npm run build:wasm && npm run build:css",
     "test": "cargo test"
   },
