@@ -157,7 +157,21 @@
                 id="reset" type="button" disabled></button>
       </div>
 
-      <div class="mt-2 grid grid-cols-[repeat(auto-fill,minmax(212px,1fr))] gap-3 max-sm:grid-cols-2 max-sm:gap-2.5" id="grid"></div>
+      <!-- Day carousel: 1 card on phones, 3 on tablet/desktop. Swipe, or use the arrows. -->
+      <div class="mt-4 flex items-center justify-between gap-4">
+        <p class="text-[14px] text-muted tabular-nums" id="carousel-pos" aria-live="polite"></p>
+        <div class="flex gap-2">
+          <button class="grid size-10 place-items-center rounded-full border border-line-strong text-fg transition-[border-color,opacity] duration-200 hover:border-fg disabled:cursor-default disabled:opacity-35 disabled:hover:border-line-strong" id="carousel-prev" type="button">
+            <svg class="size-[18px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <button class="grid size-10 place-items-center rounded-full border border-line-strong text-fg transition-[border-color,opacity] duration-200 hover:border-fg disabled:cursor-default disabled:opacity-35 disabled:hover:border-line-strong" id="carousel-next" type="button">
+            <svg class="size-[18px] fill-none stroke-current stroke-[1.8] [stroke-linecap:round] [stroke-linejoin:round]" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <!-- pt-5 leaves room for the "don't skip" bubble; px-1/-mx-1 for the flash outline -->
+      <div class="relative -mx-1 flex snap-x snap-mandatory scroll-px-1 gap-3 overflow-x-auto overscroll-x-contain px-1 pt-5 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+           id="grid" role="region" aria-roledescription="carousel" tabindex="-1"></div>
       <p class="mt-6 text-[14px] text-muted" data-i18n="note"></p>
     </div>
   </section>

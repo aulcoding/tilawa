@@ -124,6 +124,10 @@ window.TILAWA_LANG.id = {
   reset: "Reset progres",
   resetArmed: "Tap sekali lagi buat reset 29 hari",
   skipWarn: "Jangan di skip surat ini", // muncul di hari yang mau dilompati
+  carouselOne: "Hari {from} dari 29",          // posisi carousel di HP
+  carouselMany: "Hari {from}–{to} dari 29",    // posisi carousel di tablet/desktop
+  carouselPrev: "Hari sebelumnya",
+  carouselNext: "Hari berikutnya",
   undoLast: "Batalinnya dari belakang: Hari {n} dulu.", // saat batalkan hari sebelumnya; {n} = hari terakhir yang selesai
   later: "Iya. Kayak kemarin.", // dibacakan screen reader saat "Besok aja deh" di-tap
 

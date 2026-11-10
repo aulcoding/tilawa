@@ -124,6 +124,10 @@ window.TILAWA_LANG.en = {
   reset: "Reset progress",
   resetArmed: "Tap again to reset all 29 days",
   skipWarn: "Don’t skip this surah", // bubble on the day you tried to jump past
+  carouselOne: "Day {from} of 29",             // carousel position on phones
+  carouselMany: "Days {from}–{to} of 29",      // carousel position on tablet/desktop
+  carouselPrev: "Previous days",
+  carouselNext: "Next days",
   undoLast: "Undo from the end: Day {n} first.", // unticking an earlier day; {n} = last done day
   later: "Sure. Like yesterday.", // read aloud to screen readers when "I’ll start tomorrow" is tapped
 

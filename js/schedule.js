@@ -58,7 +58,7 @@ const CARD = [
   "hover:border-line-strong [&.is-next]:border-line-strong",
   "[&.is-done]:border-line-strong [&.is-done]:bg-surface-done",
   "[&.locked]:opacity-50 [&.locked]:hover:border-line [&.flash]:opacity-100!",
-  "max-sm:min-w-0",
+  "w-[calc((100%-24px)/3)] flex-none snap-start max-md:w-full",   // a slide: 3 per view (gap 12px), 1 on phones
 ].join(" ");
 const STEP = "day-step grid size-8 place-items-center rounded-full border border-line-strong bg-bg text-[18px] leading-none text-fg "
   + "transition-[border-color,opacity,transform] duration-200 hover:border-fg active:scale-90 "
@@ -79,7 +79,7 @@ function cardHTML(d, i) {
     <p class="day-status line-clamp-2 h-[2.7em] text-[13px] leading-[1.35] text-muted group-[.is-done]/day:text-fg" aria-live="polite"></p>
     <div class="flex flex-col gap-2">
       <div class="day-bar h-[3px] overflow-hidden rounded-[3px] bg-line"><i class="block h-full w-(--fill,0%) rounded-[inherit] bg-fg transition-[width] duration-350 ease-soft motion-reduce:transition-none"></i></div>
-      <div class="flex items-center justify-between gap-2 max-sm:flex-wrap">
+      <div class="flex items-center justify-between gap-2">
         <span class="day-count text-[13px] whitespace-nowrap text-muted tabular-nums"><b class="font-medium text-fg">0</b>/${total(i)} ${tt.pagesUnit}</span>
         <span class="day-ctrl inline-flex gap-1.5">
           <button class="${STEP}" type="button" data-step="-1" aria-label="${tt.pageMinus}">−</button>
@@ -87,14 +87,69 @@ function cardHTML(d, i) {
         </span>
       </div>
     </div>
-    <div class="flex justify-between gap-2 text-[12.5px] text-muted max-sm:flex-col [&>span]:whitespace-nowrap">
+    <div class="flex justify-between gap-2 text-[12.5px] text-muted [&>span]:whitespace-nowrap">
       <span>${range}</span><span>${tt.pagesShort} ${d.pg[0]}–${d.pg[1]}</span>
     </div>
   </article>`;
 }
 
 function renderGrid() {
+  const keep = firstVisible();
   grid.innerHTML = DAYS.map(cardHTML).join("");
+  goTo(keep, false);
+}
+
+// ── Carousel (1 card per view on phones, 3 on tablet/desktop) ──
+const posEl = document.getElementById("carousel-pos");
+const prevBtn = document.getElementById("carousel-prev");
+const nextBtn = document.getElementById("carousel-next");
+const GAP = 12;   // matches gap-3 on #grid
+
+const slideWidth = () => { const c = grid.querySelector(".day"); return c ? c.offsetWidth + GAP : grid.clientWidth; };
+const perView = () => Math.max(1, Math.round((grid.clientWidth + GAP) / slideWidth()));
+/** Day number of the first card in view (1-based). */
+function firstVisible() {
+  if (!grid.firstElementChild) return 1;
+  return Math.min(29, Math.max(1, Math.round(grid.scrollLeft / slideWidth()) + 1));
+}
+/** Scrolls so `day` is the first card in view (clamped so the last view is still full). */
+function goTo(day, smooth = true) {
+  const last = 29 - perView() + 1;
+  const d = Math.min(Math.max(1, day), last);
+  grid.scrollTo({ left: (d - 1) * slideWidth(), behavior: smooth && !reduce ? "smooth" : "instant" });
+  if (!smooth) updateNav();
+}
+/** Brings `day` into view only if it isn't already. */
+function reveal(day, smooth = true) {
+  const first = firstVisible(), n = perView();
+  if (day < first) goTo(day, smooth);
+  else if (day > first + n - 1) goTo(day - n + 1, smooth);
+}
+function updateNav() {
+  const first = firstVisible(), n = perView(), last = Math.min(29, first + n - 1), tt = t();
+  posEl.textContent = (n === 1 ? tt.carouselOne : tt.carouselMany)
+    .replace("{from}", first).replace("{to}", last);
+  prevBtn.disabled = first <= 1;
+  nextBtn.disabled = last >= 29;
+}
+
+function initCarousel() {
+  prevBtn.addEventListener("click", () => goTo(firstVisible() - perView()));
+  nextBtn.addEventListener("click", () => goTo(firstVisible() + perView()));
+  let raf;
+  grid.addEventListener("scroll", () => { cancelAnimationFrame(raf); raf = requestAnimationFrame(updateNav); }, { passive: true });
+  // Arrow keys while focus is inside the carousel
+  grid.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight") { e.preventDefault(); goTo(firstVisible() + 1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); goTo(firstVisible() - 1); }
+  });
+  // Keep the same first card when the layout changes (rotate phone, resize window)
+  let keep = 1, rt;
+  window.addEventListener("resize", () => {
+    if (!rt) keep = firstVisible();
+    clearTimeout(rt);
+    rt = setTimeout(() => { rt = null; goTo(keep, false); }, 120);
+  });
 }
 
 // ── Progress header line ──
@@ -157,7 +212,7 @@ function hint(text, day) {
   clearTimeout(hintTimer);
   msgEl.textContent = text;
   const card = document.getElementById("day-" + day);
-  if (card) replay(card, "flash");
+  if (card) { replay(card, "flash"); reveal(day); }
   hintTimer = setTimeout(() => { msgEl.textContent = message(done.size); }, 2800);
 }
 
@@ -174,8 +229,9 @@ function warnSkip(day) {
   w.textContent = t().skipWarn;
   card.appendChild(w);
   replay(card, "flash");
+  reveal(day);
   const r = card.getBoundingClientRect();
-  if (r.top < 90 || r.bottom > innerHeight) card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  if (r.top < 90 || r.bottom > innerHeight) card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center", inline: "nearest" });
   warnTimer = setTimeout(() => {
     w.classList.add("leaving");
     setTimeout(() => w.remove(), reduce ? 0 : 260);
@@ -201,6 +257,7 @@ function onTap(e) {
     delete cheerText[d];
     card.classList.add("just-done");
     setTimeout(() => card.classList.remove("just-done"), 1600);
+    if (d < 29) setTimeout(() => reveal(d + 1), 900);   // after the moon fills, slide to the next day
   } else {
     cheerText[d] = cheer(d);
   }
@@ -238,7 +295,8 @@ function onJump(e) {
   const card = document.getElementById("day-" + a.dataset.jump);
   if (!card) return;
   e.preventDefault();
-  card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
+  goTo(+a.dataset.jump, false);
+  card.scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center", inline: "nearest" });
   replay(card, "flash");
   setTimeout(() => (card.querySelector(".day-hit") || card).focus({ preventScroll: true }), 450);
 }
@@ -248,13 +306,20 @@ export function initSchedule(tilawaCore) {
   DAYS = JSON.parse(core.days_json());   // built in Rust from quran.json
   sync();
   grid.addEventListener("click", onTap);
+  initCarousel();
   resetBtn.addEventListener("click", onReset);
   document.addEventListener("click", onJump);
   swipeExtras.push(grid, msgEl, resetBtn);
+  let first = true;
   onLang(() => {
     disarm();
     renderGrid();
     update();
+    grid.setAttribute("aria-label", t().schedH);
+    prevBtn.setAttribute("aria-label", t().carouselPrev);
+    nextBtn.setAttribute("aria-label", t().carouselNext);
+    if (first) { first = false; goTo(core.finished_count() + 1, false); }   // open on the day you're reading
+    updateNav();
     rollTop();
     msgEl.textContent = message(done.size);
   });
