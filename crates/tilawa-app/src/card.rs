@@ -56,10 +56,17 @@ fn moon_svg(n: u8) -> String {
     )
 }
 
+/// The counter shows mushaf page numbers, not pages-of-the-day: the last page read so far.
+/// Day 2 (pages 50–76) starts at 49 ("49/76", Day 1 ended there) and goes up to 76.
+fn mushaf_page(first_page: u16, read: u16) -> u16 {
+    first_page - 1 + read
+}
+
 #[component]
 pub fn DayCard(n: u8, day: Day, state: State) -> impl IntoView {
     let i = n as usize - 1;
     let total = day.total();
+    let [first_page, last_page] = day.pages;
     let State { progress, texts, cheer, tap_count, .. } = state;
 
     // Derived state. Memos only notify when their value really changes.
@@ -86,7 +93,6 @@ pub fn DayCard(n: u8, day: Day, state: State) -> impl IntoView {
         let [a, b] = day.surah_range;
         move || texts.with(|t| if a == b { format!("{}{a}", t.surah) } else { format!("{}{a}–{b}", t.surahs) })
     };
-    let [first_page, last_page] = day.pages;
     let tag = day.tag;
     let surahs = day.surahs.clone();
 
@@ -107,7 +113,7 @@ pub fn DayCard(n: u8, day: Day, state: State) -> impl IntoView {
                 aria-label=move || {
                     let t = texts.read();
                     let more = if can_add.get() { format!(". {}", t.page_plus) } else { String::new() };
-                    format!("{} {n}: {}/{total} {}{more}", t.day, pages.get(), t.pages_unit)
+                    format!("{} {n}: {}/{last_page} {}{more}", t.day, mushaf_page(first_page, pages.get()), t.pages_unit)
                 }
                 on:click=move |_| state.tap(n, 1)
             ></button>
@@ -161,8 +167,8 @@ pub fn DayCard(n: u8, day: Day, state: State) -> impl IntoView {
                 </div>
                 <div class="flex items-center justify-between gap-2">
                     <span class="day-count text-[13px] whitespace-nowrap text-muted tabular-nums">
-                        <b class="font-medium text-fg">{move || pages.get()}</b>
-                        {move || format!("/{total} {}", texts.read().pages_unit)}
+                        <b class="font-medium text-fg">{move || mushaf_page(first_page, pages.get())}</b>
+                        {move || format!("/{last_page} {}", texts.read().pages_unit)}
                     </span>
                     <span class="day-ctrl inline-flex gap-1.5">
                         <button class=STEP type="button" data-step="-1"
@@ -190,6 +196,17 @@ pub fn DayCard(n: u8, day: Day, state: State) -> impl IntoView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn counter_continues_the_mushaf_page_numbers() {
+        let days = tilawa_core::build_days();
+        let [first, last] = days[0].pages; // Day 1: pages 1–49
+        assert_eq!((mushaf_page(first, 0), last), (0, 49));
+        let [first, last] = days[1].pages; // Day 2: Ali 'Imran, pages 50–76
+        assert_eq!(mushaf_page(first, 0), 49);
+        assert_eq!(mushaf_page(first, 1), 50);
+        assert_eq!(mushaf_page(first, days[1].total()), last);
+    }
 
     #[test]
     fn day_fifteen_moon_is_a_full_circle() {
